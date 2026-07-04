@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p data app frontend)",
+      "Bash(touch app/__init__.py app/schema.py app/tools.py app/agent.py app/validation.py app/pipeline.py app/server.py)",
+      "Bash(python3 -c \"import app.schema, app.tools, app.agent, app.validation, app.pipeline, app.server; print\\('app package + all stub modules import cleanly'\\)\")"
+    ]
+  }
+}

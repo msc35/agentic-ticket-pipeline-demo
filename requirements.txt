@@ -1,0 +1,12 @@
+# Agent (Google Gemini) — new unified SDK, replaces the old google-generativeai package
+google-genai
+
+# The deterministic contract: strict typed schema + validation
+pydantic
+
+# API layer + ASGI server to expose the pipeline and stream the trace to the browser
+fastapi
+uvicorn[standard]
+
+# Load GEMINI_API_KEY from a local .env during development
+python-dotenv
