@@ -52,7 +52,7 @@ resolves the dependencies. The `app/` module stubs import cleanly (they're empty
   (B), EX-13 LBIST coverage gap (C, ISO), EX-14 missing verification link (D, ISO), EX-18
   sensor fusion (D), EX-19 cache coherency (D), EX-20 low-severity single-bit ECC (C).
 - **3 ungrounded** (no matching evidence): EX-3 noisy multi-tool, EX-16 contradictory
-  theories, EX-17 JTAG dropouts (component identifiable but no logs/KI for the symptom).
+  theories, EX-17 novel JTAG debug-port dropouts (no logs/KI exist for it at all).
 
 **Deliberate teaching contrasts built into the set:**
 - EX-12 (TRNG) is security-relevant but QM → auto-drafts, showing safety ≠ security.
@@ -60,8 +60,8 @@ resolves the dependencies. The `app/` module stubs import cleanly (they're empty
   one concerns a safety-relevant component and overrides, the other doesn't.
 - EX-20 is low-severity and "within spec" yet still routes, proving the safety override
   keys on ASIL relevance, not severity.
-- EX-17 shows an ungrounded route where the component *is* identifiable but the root cause
-  isn't supported by any retrieved evidence.
+- EX-17 is a genuinely novel symptom the tools have nothing on, so it routes rather than
+  getting a fabricated answer.
 
 **What it does:** Provides the fake world the agent investigates and a rich, path-balanced
 set of live demo inputs. No real systems or data — everything synthetic.
@@ -75,3 +75,42 @@ references a real component, `safety_relevant == (asil != QM)` for all 20 compon
 **each example's intended path is actually supported by the data** — grounded examples
 have both logs and a KI for their component; ungrounded examples have no KI for their
 (optional) named component. All checks pass (auto_draft=6, safety=11, ungrounded=3).
+
+## Part 2 — Mock tools
+
+**What I wrote:** `app/tools.py` — a `Toolbox` class exposing the three investigation
+tools over the synthetic data, plus the evidence trace:
+- `search_logs(query, component_id=None)` — matching log entries (optional component
+  filter).
+- `lookup_component(component_id)` — the component record incl. `safety_relevant` / `asil`
+  (what the Part 6 override keys on), or `None`.
+- `query_known_issues(symptom)` — matching known issues; may return `[]`.
+Every call is appended to `self.evidence_trace` as `{tool, input, records}`, and
+`surfaced_ids()` returns the set of all record ids the tools actually returned this run.
+A fresh `Toolbox` is created per report so each run has an isolated trace.
+
+**What it does:** Gives the agent its only window into the world and, crucially, records
+exactly what evidence each call surfaced. Matching is transparent keyword/whole-word
+overlap (no vector search): you can read a call and predict its result.
+
+**Why it matters:** The evidence trace is the ground truth the Part 5 grounding check
+runs against — it lets us verify the agent cited evidence the tools genuinely returned,
+instead of trusting the model. `surfaced_ids()` is the exact set the grounding check
+tests citations against.
+
+**Design decisions worth defending:**
+- Whole-word (token-set) matching, not raw substring — avoids "intermittent" matching
+  inside "intermittently".
+- A generous stopword list so function words ("can", "last", "off", "between") never
+  drive a match.
+- Asymmetric relevance threshold: **logs match on one shared keyword** (short, specific
+  messages; maximizes investigation recall; a log match alone can't create false
+  grounding), while **known issues require two shared keywords** (long prose; this is the
+  match that drives grounding, so it must not fire on incidental single-word overlap).
+  This precision is what keeps the ungrounded examples (EX-3/16/17) ungrounded.
+
+**How to check it:** `python -m app.tools` runs a self-demo (one call of each tool + the
+surfaced ids). A verification script confirms, for all 20 examples: every grounded
+example's expected component has both supporting logs and a matching known issue (using
+both the full report and short agent-style queries), and every ungrounded example
+surfaces no known issue — even when queried with its entire report text. All pass.

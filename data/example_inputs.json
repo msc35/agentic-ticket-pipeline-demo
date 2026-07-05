@@ -21,7 +21,7 @@
     "expected_component_id": null,
     "expected_decision": "route_to_human",
     "intended_path": "Logs are scattered across CMP-005/006/009 and no known issue matches. Root cause cannot be grounded → ROUTE TO HUMAN (not grounded).",
-    "report": "Something's flaky in the last few regression runs but we can't pin it down. We had an intermittent testbench timeout that didn't reproduce, a config hash mismatch between two build nodes that passed on retry, and some sporadic X-propagation in gate-level sim that cleared on rerun. No consistent failure, just noise across a few tools. Not sure if it's one root cause or several."
+    "report": "Something's flaky in the last few regression runs but we can't pin it down. We had a testbench timeout that didn't reproduce, a config hash mismatch between two build nodes that passed on retry, and some sporadic X-propagation in gate-level sim that cleared on rerun. No consistent failure — a different symptom every time, across a few different tools. Not sure if it's one underlying problem or several unrelated hiccups."
   },
   {
     "id": "EX-4",
@@ -125,15 +125,15 @@
     "expected_component_id": null,
     "expected_decision": "route_to_human",
     "intended_path": "Vague report, contradictory guesses, no coherent evidence cluster and no matching known issue → ROUTE TO HUMAN (not grounded).",
-    "report": "Honestly not sure what's going on. Some runs just feel slower or flakier than usual. One engineer thinks it's the build nodes, another blames the debug/trace interface, someone else says it's just general noise. No consistent error message, no reproducible failure, and everyone has a different theory. Can the agent make sense of it?"
+    "report": "Honestly not sure what's going on. A few regression runs just felt off this week — slower and less stable than usual. One engineer swears the regression harness is flaky, another blames the build farm being overloaded, and a third thinks it's nothing at all. Nobody can point to a specific failure, nothing reproduces the same way twice, and every theory contradicts the last. Can the agent make sense of it?"
   },
   {
     "id": "EX-17",
-    "label": "Debug-trace dropouts, component named but no evidence (ungrounded)",
-    "expected_component_id": "CMP-020",
+    "label": "Novel JTAG debug-port dropouts, nothing in the tools (ungrounded)",
+    "expected_component_id": null,
     "expected_decision": "route_to_human",
-    "intended_path": "Agent can identify the component (CMP-020, QM) via lookup, but there are no logs and no known issue for the symptom, so the root cause cannot be grounded → ROUTE TO HUMAN (not grounded).",
-    "report": "We're getting intermittent dropouts on the JTAG/debug-trace interface during long debug sessions — the trace connection just goes away for a moment and comes back. It's the debug/trace interface. Haven't been able to capture anything useful in the logs though."
+    "intended_path": "A genuinely novel symptom: there are no logs and no known issue about it, so the tools surface nothing to ground a root cause on → ROUTE TO HUMAN (not grounded). Shows that unseen issues route to a human rather than getting a fabricated answer.",
+    "report": "We're getting intermittent dropouts on the JTAG debug port during long debug sessions — the debugger connection cuts out for a moment and then reconnects on its own. We haven't managed to capture anything useful in the logs about it, and it doesn't match anything we've seen before."
   },
   {
     "id": "EX-18",
