@@ -288,3 +288,83 @@ With the server up: `GET /examples` returns 20 examples; `POST /run` with a repo
 `tool_call` / `agent_message` events then a `result` event. Verified end-to-end on EX-2 —
 the SSE stream showed the tool calls, the agent's ticket, and a final result with
 `decision=route_to_human`, `safety_override=true`, `asil=D`.
+
+## Part 8 — The demo UI (single HTML/JS page)
+
+**What I wrote:** `frontend/index.html` — one self-contained page (HTML + CSS + vanilla JS,
+no libraries). It has:
+- A row of **example buttons** loaded from `GET /examples` (each button's tooltip shows the
+  intended path, a hint for the presenter) plus a textarea for a custom report.
+- A **live trace panel** that consumes the `POST /run` SSE stream and appends each tool call
+  (tool name, inputs, and the returned record ids as chips with the record text on hover) and
+  each agent message, in order, as they arrive.
+- A **result panel** with: a big decision banner (green "✓ AUTO-DRAFTED" / amber
+  "⚠ ROUTED TO HUMAN") with the plain-English reason; a distinct red **"🛡 SAFETY OVERRIDE —
+  ASIL X"** badge when the override fired; a plain **grounded / not grounded** flag; a
+  **decision-path chain** (Schema → Grounded → Safety → decision) so the logic is visible as
+  a chain, not just a verdict; and the drafted **ticket** rendered as labeled fields with a
+  colored severity pill and evidence-id chips (or the partial raw output if the schema failed).
+
+**One technical note worth defending:** `/run` is POST + SSE, and the browser `EventSource`
+API only supports GET. So the page reads the stream with `fetch()` + a `ReadableStream`
+reader and parses the `data: {...}\n\n` frames itself.
+
+**What it does:** Makes the whole pipeline runnable and legible in the browser — you watch
+the agent investigate, then see exactly why each case auto-drafted or routed.
+
+**Why it matters:** The visible contrast between an auto-drafted case and a routed case —
+and, for routed cases, between a *grounding* route and a *safety* route — is what sells the
+demo. The UI's job is to make the deterministic reliability logic obvious to someone watching.
+
+**How to check it:** `uvicorn app.server:app --port 8000`, open http://localhost:8000, and
+click the example buttons. Verified: the page is served at `/`, `/examples` populates the
+buttons, and the `POST /run` result event carries exactly the fields the UI renders
+(decision, reason, grounded, safety_override, affected_asil, and the six ticket fields).
+End-to-end backend behaviour confirmed for the clean (EX-1, auto-draft), safety (EX-2, ASIL
+D override) and ungrounded (EX-3) cases.
+
+## Enhancements (after Part 8)
+
+Post-core improvements that deepen the reliability story and add engineering rigor. The
+core Parts 0-8 still stand; these build on them.
+
+### Confidence vs grounding (the thesis, made visible)
+- The agent now also emits a self-reported `confidence` (0..1). It is captured onto
+  `PipelineResult.model_confidence` **for display only** and is provably never consulted in
+  any decision branch (`_extract_confidence` is display-only; a regression test asserts the
+  same ticket with 0.99 vs 0.01 confidence yields the identical decision).
+- The UI shows an "agent confidence: N%" badge next to the grounded flag, with a note that
+  it is not used in the decision. The contrast is vivid: EX-3/EX-16 route at ~90% confidence
+  because they are not grounded; safety cases route at 100% because ASIL relevance overrides.
+
+### Stronger grounding
+- The grounding check now also verifies the stated `root_cause` shares keywords with the
+  cited known issue (`keyword_overlap`), catching a "right citation, wrong story" ticket
+  (cites the correct KI id but writes an unrelated cause).
+- Refined the schema/grounding split: empty `evidence_ids` is now allowed by the schema
+  (well-formed but unsupported) and rejected by the **grounding** gate ("cites no evidence").
+  Schema checks shape; grounding checks support. Auto-draft still requires real grounded
+  evidence, so nothing weakens.
+
+### Agent robustness
+- Split the loop into an investigation phase (tools on) and a finalization phase (tools
+  OFF) that forces a clean final JSON with a couple of correction retries. This stops a
+  hesitant agent from returning prose (which would misfire as a schema failure) — the noisy
+  cases now reliably reach the grounding gate instead.
+- Data fix: reworded LOG-042 ("recovered via a protocol reset" instead of "via timeout") so
+  the word "timeout" no longer bridges EX-3's noise to the cache-coherency known issue.
+
+### Test suite + acceptance harness
+- `tests/` — 51 deterministic pytest tests (no API): schema contract, tool matching + the
+  evidence trace, per-example data-support (grounded examples have logs+KI; ungrounded
+  surface no KI), and every gate/override/confidence path. Run: `pytest -q`.
+- `scripts/acceptance.py` — live harness running all 20 examples through the real pipeline
+  and checking each lands on its intended path (auto_draft / route:safety / route:ungrounded).
+  Latest run: **20/20**. Run: `python scripts/acceptance.py`.
+- `requirements-dev.txt` adds `pytest`.
+
+### UI transparency & polish
+- Component ASIL / safety shown on every ticket (not only on override).
+- "Evidence considered" section: cited (green) vs surfaced-but-unused (grey) chips, making
+  grounding visible.
+- Cmd/Ctrl+Enter to run, copy-ticket-as-JSON, and automatic dark mode.

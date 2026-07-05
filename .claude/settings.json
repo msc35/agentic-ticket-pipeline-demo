@@ -32,7 +32,15 @@
       "Bash(curl -s localhost:8000/)",
       "Bash(curl -s localhost:8000/examples)",
       "Bash(.venv/bin/python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('count:',len\\(d\\)\\); print\\('first:',d[0]['id'],d[0]['label']\\)\")",
-      "Bash(kill 76275)"
+      "Bash(kill 76275)",
+      "Bash(.venv/bin/python -m uvicorn app.server:app --host 127.0.0.1 --port 8000 --log-level warning)",
+      "Bash(curl -s -o /dev/null -w \"GET / -> HTTP %{http_code}\\\\n\" localhost:8000/)",
+      "Bash(curl -s localhost:8000/examples -o /dev/null -w \"GET /examples -> HTTP %{http_code}\\\\n\")",
+      "Bash(pkill -f \"uvicorn app.server\")",
+      "Bash(.venv/bin/python -m pip install -q pytest)",
+      "Bash(.venv/bin/python -m pytest --version)",
+      "Bash(.venv/bin/python -m pytest -q)",
+      "Bash(.venv/bin/python scripts/acceptance.py)"
     ]
   }
 }

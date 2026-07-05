@@ -70,12 +70,16 @@ How to work:
    list. It is correct and expected to hand an uncertain case to a human rather than
    fabricate a cause.
 5. Pick "severity" from exactly: "low", "medium", "high", "critical".
+6. Also report "confidence": your own estimate, a number from 0.0 to 1.0, of how likely your
+   root cause is correct. Be honest. (Note: this is your self-assessment only; the system
+   does not use it to decide anything — it independently verifies your evidence — so do not
+   inflate it.)
 
 When you are done investigating, respond with ONLY a JSON object — no prose, no markdown
 code fences — with exactly these keys:
   {{"summary": str, "affected_component_id": str, "root_cause": str,
     "severity": "low"|"medium"|"high"|"critical", "recommended_action": str,
-    "evidence_ids": [str, ...]}}
+    "evidence_ids": [str, ...], "confidence": number}}
 """
 
 # When the round cap is reached, we ask the model to stop investigating and finalize.
@@ -83,6 +87,14 @@ _FORCE_FINAL = (
     "You have reached the investigation limit. Based on what you have found so far, output "
     "the final JSON ticket now, following the required format exactly."
 )
+
+# If the model ends its turn with prose instead of JSON, nudge it once to emit only JSON.
+_JSON_CORRECTION = (
+    "Your last message was not the required JSON object. Respond now with ONLY the JSON "
+    "object described (no prose, no code fences). If you could not ground a root cause, "
+    "still return the JSON with an empty \"evidence_ids\" list and a low \"confidence\"."
+)
+MAX_JSON_RETRIES = 2
 
 
 # --- tool declarations (JSON schema the model sees) ------------------------------------
@@ -204,12 +216,17 @@ def iter_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS)
     callers that just want the final result.
     """
     client = _client()
-    config = types.GenerateContentConfig(
+    # Investigation config: tools available; hand-rolled loop, so auto function calling OFF.
+    tool_config = types.GenerateContentConfig(
         system_instruction=SYSTEM_PROMPT,
         tools=[_tool()],
-        # Hand-rolled loop: we execute tools ourselves, so turn OFF auto function calling.
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         temperature=0,  # deterministic-as-possible for a reproducible demo
+    )
+    # Finalization config: NO tools, so the model must emit its answer as text (it cannot
+    # keep calling tools to avoid committing). Used to force a clean final JSON.
+    final_config = types.GenerateContentConfig(
+        system_instruction=SYSTEM_PROMPT, temperature=0
     )
 
     contents: list[types.Content] = [
@@ -222,8 +239,13 @@ def iter_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS)
         steps.append(step)
         return step
 
+    # --- investigation phase: let the model call tools until it stops or hits the cap ---
+    final_text = ""
+    final_round = max_rounds
+    answered = False  # did the model volunteer a final (non-JSON) answer before the cap?
+
     for round_i in range(max_rounds):
-        resp = client.models.generate_content(model=MODEL, contents=contents, config=config)
+        resp = client.models.generate_content(model=MODEL, contents=contents, config=tool_config)
 
         text = _text_of(resp)
         if text:
@@ -231,12 +253,16 @@ def iter_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS)
 
         calls = resp.function_calls or []
         if not calls:
-            # No tool call this turn → the model has given its final answer.
-            return _finalize(text, steps, round_i)
+            # The model intends this as its final answer.
+            final_text, final_round = text, round_i
+            if _extract_json(text) is not None:
+                return _finalize(text, steps, round_i)  # clean JSON → done
+            contents.append(resp.candidates[0].content)  # keep the prose turn, then correct it
+            answered = True
+            break
 
         # Keep the model's own turn (its function_call parts) in the history…
         contents.append(resp.candidates[0].content)
-
         # …then execute each call and feed the results back in a single user turn.
         fr_parts: list[types.Part] = []
         for call in calls:
@@ -248,13 +274,23 @@ def iter_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS)
             ))
         contents.append(types.Content(role="user", parts=fr_parts))
 
-    # Round cap reached: ask once for a final answer, tools still available but discouraged.
-    contents.append(types.Content(role="user", parts=[types.Part.from_text(text=_FORCE_FINAL)]))
-    resp = client.models.generate_content(model=MODEL, contents=contents, config=config)
-    text = _text_of(resp)
-    if text:
-        yield emit({"type": "agent_message", "text": text})
-    return _finalize(text, steps, max_rounds)
+    # --- finalization phase: tools OFF, push for a clean final JSON with a few retries -----
+    contents.append(types.Content(
+        role="user",
+        parts=[types.Part.from_text(text=_JSON_CORRECTION if answered else _FORCE_FINAL)],
+    ))
+    for _ in range(MAX_JSON_RETRIES + 1):
+        resp = client.models.generate_content(model=MODEL, contents=contents, config=final_config)
+        text = _text_of(resp)
+        if text:
+            yield emit({"type": "agent_message", "text": text})
+        final_text = text or final_text
+        if _extract_json(text) is not None:
+            return _finalize(text, steps, final_round)
+        contents.append(resp.candidates[0].content)
+        contents.append(types.Content(role="user", parts=[types.Part.from_text(text=_JSON_CORRECTION)]))
+
+    return _finalize(final_text, steps, final_round)
 
 
 def run_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS) -> AgentResult:

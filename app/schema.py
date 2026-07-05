@@ -39,10 +39,12 @@ class Ticket(BaseModel):
     root_cause: str = Field(min_length=1, description="The agent's diagnosed root cause.")
     severity: Severity = Field(description="One of: low, medium, high, critical.")
     recommended_action: str = Field(min_length=1, description="What should be done.")
-    # Non-empty by contract: a ticket with no cited evidence cannot be grounded, so we
-    # reject it at the schema level rather than letting an unsupported ticket through.
+    # May be empty at the SCHEMA level: an evidence-less ticket is well-formed but simply
+    # unsupported. Whether the cited evidence actually grounds the root cause (and the "no
+    # evidence at all" case) is judged by the grounding gate, not here — schema checks shape,
+    # grounding checks support. An empty list can therefore never reach auto_draft.
     evidence_ids: list[str] = Field(
-        min_length=1,
+        default_factory=list,
         description="Ids of the specific logs / known-issues / components the agent relied "
         "on. This is what makes the root cause grounding-checkable.",
     )
@@ -58,14 +60,13 @@ class Ticket(BaseModel):
     @field_validator("evidence_ids")
     @classmethod
     def _clean_evidence_ids(cls, v: list[str]) -> list[str]:
-        """Drop blanks/dupes while preserving order; a list of only blanks is invalid."""
+        """Drop blanks/dupes while preserving order. May legitimately end up empty (an
+        unsupported ticket) — that is handled by the grounding gate, not the schema."""
         cleaned: list[str] = []
         for raw in v:
             item = raw.strip()
             if item and item not in cleaned:
                 cleaned.append(item)
-        if not cleaned:
-            raise ValueError("evidence_ids must contain at least one non-empty id")
         return cleaned
 
 
@@ -78,6 +79,15 @@ class EvidenceCall(BaseModel):
     tool: str
     input: dict[str, Any]
     records: list[dict[str, Any]]
+
+
+class ComponentInfo(BaseModel):
+    """Minimal component facts surfaced to the UI (so it can show ASIL on every ticket)."""
+
+    id: str
+    name: str
+    safety_relevant: bool
+    asil: str
 
 
 class PipelineResult(BaseModel):
@@ -101,6 +111,15 @@ class PipelineResult(BaseModel):
     # "SAFETY OVERRIDE — ASIL X" badge in the UI.
     affected_asil: Optional[str] = None
 
+    # Facts about the blamed component (when the ticket is schema-valid), so the UI can show
+    # ASIL / safety relevance on every ticket, not only when the override fires.
+    affected_component: Optional[ComponentInfo] = None
+
+    # The agent's OWN self-reported confidence (0..1), captured for display only. It is
+    # deliberately NOT used in any decision — the whole point is that we verify grounding
+    # instead of trusting this number. Surfacing it makes that contrast visible.
+    model_confidence: Optional[float] = None
+
     # The validated ticket if it passed the schema, else None. `raw_ticket` keeps whatever
     # the agent produced (even if invalid) so the human queue can see the partial work.
     ticket: Optional[Ticket] = None
@@ -123,9 +142,13 @@ if __name__ == "__main__":
     )
     print(f"   OK -> evidence_ids cleaned to {t.evidence_ids}\n")
 
+    # Note: empty evidence_ids is intentionally NOT a schema failure anymore — it is a
+    # well-formed but unsupported ticket, caught by the grounding gate (Part 5).
+    print("\n   (empty evidence_ids now builds — support is judged by grounding, not schema:",
+          f"{Ticket(**{**dict(summary='x', affected_component_id='CMP-003', root_cause='x', severity='low', recommended_action='x'), 'evidence_ids': []}).evidence_ids})\n")
+
     for label, kwargs in {
         "unknown component id": dict(affected_component_id="CMP-999"),
-        "empty evidence_ids": dict(evidence_ids=[]),
         "bad severity": dict(severity="urgent"),
         "blank summary": dict(summary="   "),
     }.items():

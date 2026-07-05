@@ -37,8 +37,14 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.schema import PipelineResult, Ticket
-from app.tools import Toolbox, get_component
+from app.schema import ComponentInfo, PipelineResult, Ticket
+from app.tools import Toolbox, get_component, keyword_overlap
+
+# A cited known issue must share at least this many meaningful keywords with the ticket's
+# stated root cause. It catches a "right citation, wrong story" mismatch — the agent citing a
+# valid known issue while writing an unrelated root cause — without being so strict that a
+# normal paraphrase fails (the agent has just read the KI, so real overlap is high).
+_MIN_ROOTCAUSE_OVERLAP = 2
 
 
 # --- step 1: schema validation ---------------------------------------------------------
@@ -92,6 +98,15 @@ def check_grounding(ticket: Ticket, toolbox: Toolbox) -> tuple[bool, str]:
     records = toolbox.surfaced_records()
     cited = ticket.evidence_ids
 
+    # (0) No evidence at all: a well-formed but unsupported ticket. This is where an honest
+    #     "I could not ground it" (empty evidence_ids) lands — a grounding failure, not a
+    #     schema one.
+    if not cited:
+        return False, (
+            "root cause not grounded in retrieved evidence: the ticket cites no evidence to "
+            "support the root cause"
+        )
+
     # (a) Hallucinated grounding: the agent cited evidence no tool ever returned.
     fabricated = [c for c in cited if c not in surfaced]
     if fabricated:
@@ -112,13 +127,56 @@ def check_grounding(ticket: Ticket, toolbox: Toolbox) -> tuple[bool, str]:
             f"(symptomatic logs alone are not sufficient to auto-draft)"
         )
 
+    # (c) The stated root cause must actually match the known issue it cites — not just
+    #     name the right id. Require keyword overlap with at least one supporting KI's text.
+    matched = [
+        ki for ki in supporting_kis
+        if len(keyword_overlap(ticket.root_cause,
+                               records[ki]["pattern"] + " " + records[ki]["root_cause"]))
+        >= _MIN_ROOTCAUSE_OVERLAP
+    ]
+    if not matched:
+        return False, (
+            f"root cause not grounded in retrieved evidence: the stated root cause does not "
+            f"match the cited known issue {', '.join(supporting_kis)} (right citation, wrong "
+            f"explanation)"
+        )
+
     return True, (
         f"root cause grounded — matches validated known issue "
-        f"{', '.join(supporting_kis)} for {ticket.affected_component_id}"
+        f"{', '.join(matched)} for {ticket.affected_component_id}"
     )
 
 
 # --- step 3: decision gate -------------------------------------------------------------
+
+def _extract_confidence(raw: dict[str, Any] | None) -> float | None:
+    """Pull the agent's self-reported confidence for display only (never a decision input).
+
+    Tolerant of shapes: a 0..1 float, a 0..100 percentage, or a numeric string. Anything
+    unparseable is simply dropped — we never let this number affect the outcome.
+    """
+    if not isinstance(raw, dict) or "confidence" not in raw:
+        return None
+    try:
+        c = float(raw["confidence"])
+    except (TypeError, ValueError):
+        return None
+    if c > 1.0:            # model gave a percentage like 92 instead of 0.92
+        c = c / 100.0
+    return max(0.0, min(1.0, c))
+
+
+def _component_info(ticket: Ticket | None) -> ComponentInfo | None:
+    """Facts about the blamed component, for the UI (ASIL shown on every ticket)."""
+    if ticket is None:
+        return None
+    comp = get_component(ticket.affected_component_id)
+    if not comp:
+        return None
+    return ComponentInfo(id=comp["id"], name=comp["name"],
+                         safety_relevant=comp["safety_relevant"], asil=comp["asil"])
+
 
 def evaluate(raw_output: dict[str, Any] | None, toolbox: Toolbox) -> PipelineResult:
     """Run schema validation + grounding + the base decision gate.
@@ -128,6 +186,8 @@ def evaluate(raw_output: dict[str, Any] | None, toolbox: Toolbox) -> PipelineRes
     override may later force it to `route_to_human`.
     """
     trace = toolbox.evidence_trace
+    # Captured for display only — deliberately NOT consulted in any branch below.
+    confidence = _extract_confidence(raw_output)
 
     # Step 1 — schema gate. Fail closed if the output doesn't fit the contract.
     ticket, schema_err = validate_ticket(raw_output)
@@ -139,8 +199,11 @@ def evaluate(raw_output: dict[str, Any] | None, toolbox: Toolbox) -> PipelineRes
             grounded=False,
             ticket=None,
             raw_ticket=raw_output,
+            model_confidence=confidence,
             evidence_trace=trace,
         )
+
+    component = _component_info(ticket)
 
     # Step 2 — grounding gate. Do not trust the model; verify against the evidence trace.
     grounded, ground_reason = check_grounding(ticket, toolbox)
@@ -153,6 +216,8 @@ def evaluate(raw_output: dict[str, Any] | None, toolbox: Toolbox) -> PipelineRes
             grounded=False,
             ticket=ticket,
             raw_ticket=raw_output,
+            affected_component=component,
+            model_confidence=confidence,
             evidence_trace=trace,
         )
 
@@ -164,6 +229,8 @@ def evaluate(raw_output: dict[str, Any] | None, toolbox: Toolbox) -> PipelineRes
         grounded=True,
         ticket=ticket,
         raw_ticket=raw_output,
+        affected_component=component,
+        model_confidence=confidence,
         evidence_trace=trace,
     )
 
@@ -244,9 +311,11 @@ if __name__ == "__main__":
             {**good, "affected_component_id": "CMP-004", "evidence_ids": ["LOG-004", "KI-002"]},
         "symptomatic logs only, no known issue (the EX-3 shape)":
             {**good, "evidence_ids": ["LOG-004", "LOG-005"]},
+        "right citation, wrong story (cites KI-002, unrelated root cause)":
+            {**good, "root_cause": "The GPIO debounce filter is missing.", "evidence_ids": ["KI-002"]},
         "cites only the component id (no real evidence)":
             {**good, "evidence_ids": ["CMP-002"]},
-        "schema fail: empty evidence_ids": {**good, "evidence_ids": []},
+        "grounding fail: no evidence cited (empty list)": {**good, "evidence_ids": []},
         "schema fail: unknown component": {**good, "affected_component_id": "CMP-999"},
         "schema fail: not JSON (agent returned nothing)": None,
     }

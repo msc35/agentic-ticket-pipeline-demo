@@ -57,6 +57,16 @@ def get_component(component_id: str) -> dict[str, Any] | None:
     return _COMPONENTS_BY_ID.get(component_id)
 
 
+def keyword_overlap(a: str, b: str) -> set[str]:
+    """Meaningful whole-word tokens shared by two texts.
+
+    Exposed for the Part 5 grounding check, which uses it to confirm a ticket's stated root
+    cause actually overlaps the known issue it cites (catching a right-citation/wrong-story
+    mismatch). Same tokenizer/stopwords the tools use, so behaviour is consistent.
+    """
+    return _tokens(a) & _tokens(b)
+
+
 # --- simple, transparent matching ------------------------------------------------------
 
 # Stopwords: common English function/filler words that carry no technical meaning. They

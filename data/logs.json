@@ -291,6 +291,6 @@
     "timestamp": "2026-07-04T20:58:30Z",
     "component_id": "CMP-016",
     "severity": "warning",
-    "message": "Coherency protocol near-deadlock detected; recovered via timeout on the safety-critical core."
+    "message": "Coherency protocol near-deadlock detected; recovered via a protocol reset on the safety-critical core."
   }
 ]
