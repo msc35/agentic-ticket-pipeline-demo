@@ -368,3 +368,37 @@ core Parts 0-8 still stand; these build on them.
 - "Evidence considered" section: cited (green) vs surfaced-but-unused (grey) chips, making
   grounding visible.
 - Cmd/Ctrl+Enter to run, copy-ticket-as-JSON, and automatic dark mode.
+
+## Part 9 — Docker wrap + temporary public hosting
+
+**What I wrote:**
+- `Dockerfile` — `python:3.11-slim`, installs `requirements.txt`, copies `app/ data/
+  frontend/`, runs as a non-root user, and starts uvicorn on `$PORT` (default 8000). The
+  `GEMINI_API_KEY` is passed at run time, never baked into the image.
+- `.dockerignore` — keeps the image slim and never ships `.env`, `.venv`, `.git`, tests, or
+  docs.
+- Optional access guard in `app/server.py`: if `APP_PASSWORD` is set, an HTTP Basic-auth
+  middleware gates every route. Browsers prompt once and then send the credentials on all
+  requests (including the fetch/SSE calls), so no frontend change is needed. Unset by
+  default (open), which is fine for local use.
+- `scripts/share.sh` — one command that runs the server locally and exposes it on a
+  temporary public `https://…trycloudflare.com` URL via Cloudflare Tunnel. The URL is live
+  only while the script runs; closing it leaves nothing online — which matches the "host
+  from my laptop while I need it" requirement.
+
+**What it does:** Makes the app portable (container) and gives a zero-standing-infra way to
+show it on another machine (the interview laptop) through a public URL, optionally password
+-protected.
+
+**Why it matters:** "Containerized, reproducible, runs anywhere" is a clean, true line, and
+the laptop tunnel means the demo is reachable from any browser during the interview without
+deploying a persistent server or leaving the API key on a host.
+
+**How to check it:**
+- Auth: `APP_PASSWORD=secret123 uvicorn app.server:app --port 8010` then curl — no creds and
+  wrong password return 401, correct password returns 200 (verified).
+- Tunnel: `./scripts/share.sh` prints a public URL; verified `cloudflared` registers a tunnel
+  connection to the Cloudflare edge (the URL then works from any browser after warm-up).
+- Docker: `docker build -t agentic-ticket .` then
+  `docker run --rm -p 8000:8000 -e GEMINI_API_KEY=... agentic-ticket` (Dockerfile provided;
+  Docker isn't installed on this machine, so the image build is documented, not run here).

@@ -10,10 +10,13 @@ All state is in-memory per request. CORS is open for local use.
 
 from __future__ import annotations
 
+import base64
 import json
+import os
+import secrets
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -24,6 +27,13 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 INDEX_HTML = ROOT / "frontend" / "index.html"
 
+# Optional access password. When set (e.g. when exposing the app through a public tunnel),
+# every request must carry HTTP Basic credentials whose password matches. Browsers prompt
+# for this once and then send it automatically on all requests — including the fetch()/SSE
+# calls — so no frontend change is needed. Left unset (the default), the app is open, which
+# is fine for purely local use.
+APP_PASSWORD = os.environ.get("APP_PASSWORD")
+
 app = FastAPI(title="Agentic Incident-to-Ticket Pipeline")
 
 # Open CORS for local development (the UI may be opened from file:// or another port).
@@ -33,6 +43,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def optional_basic_auth(request: Request, call_next):
+    """Gate every route behind HTTP Basic auth iff APP_PASSWORD is set."""
+    if APP_PASSWORD:
+        supplied = None
+        header = request.headers.get("authorization", "")
+        if header.startswith("Basic "):
+            try:
+                supplied = base64.b64decode(header[6:]).decode().partition(":")[2]
+            except Exception:
+                supplied = None
+        # constant-time compare; any username is accepted, only the password matters
+        if supplied is None or not secrets.compare_digest(supplied, APP_PASSWORD):
+            return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="demo"'})
+    return await call_next(request)
 
 
 class RunRequest(BaseModel):

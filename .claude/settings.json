@@ -40,7 +40,16 @@
       "Bash(.venv/bin/python -m pip install -q pytest)",
       "Bash(.venv/bin/python -m pytest --version)",
       "Bash(.venv/bin/python -m pytest -q)",
-      "Bash(.venv/bin/python scripts/acceptance.py)"
+      "Bash(.venv/bin/python scripts/acceptance.py)",
+      "Bash(command -v docker)",
+      "Bash(docker --version)",
+      "Bash(command -v cloudflared)",
+      "Bash(cloudflared --version)",
+      "Bash(command -v ngrok)",
+      "Bash(chmod +x /Users/selim/Documents/agentic-ticket/scripts/share.sh)",
+      "Bash(bash -n /Users/selim/Documents/agentic-ticket/scripts/share.sh)",
+      "Bash(curl -s -o /dev/null -w \"local server \\(no password\\): / -> %{http_code}, /examples -> \" localhost:8000/)",
+      "Bash(.venv/bin/python -c \"import sys,json; print\\(str\\(len\\(json.load\\(sys.stdin\\)\\)\\)+' examples'\\)\")"
     ]
   }
 }

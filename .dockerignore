@@ -1,0 +1,13 @@
+# Keep the image slim and never ship secrets or local cruft.
+.env
+.venv
+venv
+__pycache__
+*.pyc
+.git
+.gitignore
+.gitattributes
+tests
+scripts
+*.md
+AGENTIC_PIPELINE_SPEC.md
