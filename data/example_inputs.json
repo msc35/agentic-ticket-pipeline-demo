@@ -1,0 +1,162 @@
+[
+  {
+    "id": "EX-1",
+    "label": "Log buffer overflow (non-safety)",
+    "expected_component_id": "CMP-003",
+    "expected_decision": "auto_draft",
+    "intended_path": "Grounds on CMP-003 (QM) via KI-001. Passes schema + grounding, no safety override → AUTO-DRAFT.",
+    "report": "Our nightly diagnostic run is missing a bunch of entries. During heavy bursts the diagnostic logging utility seems to just drop log lines — we watched the log buffer fill up and then thousands of entries vanished. Nothing looks physically broken, we're just losing diagnostic data whenever logging gets busy. Can someone figure out what's going on with the logging?"
+  },
+  {
+    "id": "EX-2",
+    "label": "PMU brownout on VDD_CORE (ASIL D)",
+    "expected_component_id": "CMP-002",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds cleanly on CMP-002 (ASIL D) via KI-002. Well-formed and grounded, but the safety override forces ROUTE TO HUMAN.",
+    "report": "We're seeing power problems on the power management unit. During fast load transients the VDD_CORE rail dips under the brownout threshold and we get undervoltage errors. There also seems to be a power sequencing issue where VDD_CORE comes up before VDD_IO is stable. This is on the PMU."
+  },
+  {
+    "id": "EX-3",
+    "label": "Noisy multi-tool flakiness (ungrounded)",
+    "expected_component_id": null,
+    "expected_decision": "route_to_human",
+    "intended_path": "Logs are scattered across CMP-005/006/009 and no known issue matches. Root cause cannot be grounded → ROUTE TO HUMAN (not grounded).",
+    "report": "Something's flaky in the last few regression runs but we can't pin it down. We had an intermittent testbench timeout that didn't reproduce, a config hash mismatch between two build nodes that passed on retry, and some sporadic X-propagation in gate-level sim that cleared on rerun. No consistent failure, just noise across a few tools. Not sure if it's one root cause or several."
+  },
+  {
+    "id": "EX-4",
+    "label": "STA tool qualification lapse, ISO 26262 (ASIL B)",
+    "expected_component_id": "CMP-001",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-001 (ASIL B) via KI-003 (tool-qualification lapse). Safety-relevant clock domain → safety override forces ROUTE TO HUMAN. The classic ISO 26262 tool-qualification story.",
+    "report": "Compliance flagged that the clock tree signoff for one of our ASIL-B clock domains was done with a static timing analysis tool version that isn't in the qualified toolchain manifest. So the timing signoff evidence for a safety-relevant clock domain may not be valid. We need this triaged."
+  },
+  {
+    "id": "EX-5",
+    "label": "Power estimation model drift (non-safety)",
+    "expected_component_id": "CMP-007",
+    "expected_decision": "auto_draft",
+    "intended_path": "Grounds on CMP-007 (QM) via KI-004. Passes schema + grounding, no safety override → AUTO-DRAFT.",
+    "report": "The power estimation numbers look off. Predicted dynamic power is diverging from measured by almost 20%, and it turns out the power estimation model hasn't been recalibrated in months. Reports are being generated against a stale characterization corner. This is just our internal power estimation model, nothing on-chip."
+  },
+  {
+    "id": "EX-6",
+    "label": "Uncorrectable ECC in memory controller (ASIL C)",
+    "expected_component_id": "CMP-004",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds cleanly on CMP-004 (ASIL C) via KI-005. Well-formed and grounded, but the safety override forces ROUTE TO HUMAN.",
+    "report": "The memory controller is throwing uncorrectable multi-bit ECC errors — one at address 0x3F2A11C0 — and bank 3 has a rising single-bit error rate. A scrubbing cycle failed to clear a persistent multi-bit fault. Looks like a hard fault in that bank."
+  },
+  {
+    "id": "EX-7",
+    "label": "OTA update rollback failure (non-safety)",
+    "expected_component_id": "CMP-013",
+    "expected_decision": "auto_draft",
+    "intended_path": "Grounds on CMP-013 (QM) via KI-006. Passes schema + grounding, no safety override → AUTO-DRAFT.",
+    "report": "A firmware over-the-air update failed on a test unit and then the automatic rollback didn't finish either — the device ended up stuck on the staging image instead of falling back to the previous good firmware. Looks like the A/B slot swap flag isn't being cleared after a failed update. This is the OTA update manager, not anything on the safety path."
+  },
+  {
+    "id": "EX-8",
+    "label": "GPIO interrupt storm (non-safety)",
+    "expected_component_id": "CMP-017",
+    "expected_decision": "auto_draft",
+    "intended_path": "Grounds on CMP-017 (QM) via KI-007. Passes schema + grounding, no safety override → AUTO-DRAFT.",
+    "report": "We're getting an interrupt storm off GPIO pin 14 — thousands of toggles in a few milliseconds with nothing actually happening on the pin externally. Smells like a missing debounce filter letting electrical noise through. It's just a general-purpose GPIO, nothing safety-critical."
+  },
+  {
+    "id": "EX-9",
+    "label": "PLL loss of lock on safety clock (ASIL B)",
+    "expected_component_id": "CMP-010",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-010 (ASIL B) via KI-008. Safety-relevant clock → safety override forces ROUTE TO HUMAN.",
+    "report": "The PLL feeding one of our ASIL-B clock domains lost lock during a voltage droop, and even when locked the output jitter is over the spec limit for that safety clock. Need someone to look at the PLL loop margin."
+  },
+  {
+    "id": "EX-10",
+    "label": "CAN bus-off on safety channel (ASIL C)",
+    "expected_component_id": "CMP-011",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-011 (ASIL C) via KI-009. Safety comms → safety override forces ROUTE TO HUMAN.",
+    "report": "The CAN controller on our safety communication channel keeps dropping into bus-off. We're seeing an elevated bit-error rate and the transmit error counter runs past 255 and then it goes bus-off. This is the safety comms path."
+  },
+  {
+    "id": "EX-11",
+    "label": "Thermal sensor stuck reading (ASIL B)",
+    "expected_component_id": "CMP-012",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-012 (ASIL B) via KI-010. Safety thermal reaction → safety override forces ROUTE TO HUMAN.",
+    "report": "One of the thermal sensors is reading a flat 25C even under a heavy workload where we'd expect it to heat up. The plausibility cross-check against the neighboring sensor is flagging it. Looks like the sensor channel is stuck."
+  },
+  {
+    "id": "EX-12",
+    "label": "TRNG entropy health-test failure (security, non-safety)",
+    "expected_component_id": "CMP-018",
+    "expected_decision": "auto_draft",
+    "intended_path": "Grounds on CMP-018 (QM) via KI-011. Security-relevant but not on the safety path, so no override → AUTO-DRAFT. Good example of the safety/security distinction.",
+    "report": "The random number generator's online health test is failing — the repetition-count test tripped and entropy dropped below threshold, so it's running on a reduced entropy pool. This is a security concern for key generation, but it's not on the functional-safety path."
+  },
+  {
+    "id": "EX-13",
+    "label": "LBIST coverage gap, ISO 26262 (ASIL C)",
+    "expected_component_id": "CMP-014",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-014 (ASIL C) via KI-012 (diagnostic-coverage gap). Safety island → safety override forces ROUTE TO HUMAN. An ISO 26262 verification-gap story.",
+    "report": "Our LBIST fault coverage came in at 89.2%, under the 90% target for the ASIL-C safety block, and the gap is concentrated in the safety island logic. That's a diagnostic-coverage shortfall we can't just wave through."
+  },
+  {
+    "id": "EX-14",
+    "label": "Missing verification link on safety requirement, ISO 26262 (ASIL D)",
+    "expected_component_id": "CMP-008",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-008 (ASIL D) via KI-013 (traceability gap). Safety mechanism → safety override forces ROUTE TO HUMAN. An ISO 26262 traceability story.",
+    "report": "Audit found that safety requirement SR-207 — the watchdog fault-reaction timing — has no linked verification result in the traceability matrix. So we have an unverified safety requirement on the fault-collection unit. Needs triage before release."
+  },
+  {
+    "id": "EX-15",
+    "label": "Traceability tool export bug (non-safety)",
+    "expected_component_id": "CMP-015",
+    "expected_decision": "auto_draft",
+    "intended_path": "Grounds on CMP-015 (QM) via KI-014. The tool itself is not on a safety path, so no override → AUTO-DRAFT. Contrast with EX-14, where the *requirement* was safety-relevant.",
+    "report": "Minor one: our requirements traceability tool dropped a couple of trace links when exporting the matrix, and the HTML and CSV exports show different link counts. Re-exporting fixed it. Seems like a tooling/export bug in the trace tool itself."
+  },
+  {
+    "id": "EX-16",
+    "label": "Contradictory theories, no evidence (ungrounded)",
+    "expected_component_id": null,
+    "expected_decision": "route_to_human",
+    "intended_path": "Vague report, contradictory guesses, no coherent evidence cluster and no matching known issue → ROUTE TO HUMAN (not grounded).",
+    "report": "Honestly not sure what's going on. Some runs just feel slower or flakier than usual. One engineer thinks it's the build nodes, another blames the debug/trace interface, someone else says it's just general noise. No consistent error message, no reproducible failure, and everyone has a different theory. Can the agent make sense of it?"
+  },
+  {
+    "id": "EX-17",
+    "label": "Debug-trace dropouts, component named but no evidence (ungrounded)",
+    "expected_component_id": "CMP-020",
+    "expected_decision": "route_to_human",
+    "intended_path": "Agent can identify the component (CMP-020, QM) via lookup, but there are no logs and no known issue for the symptom, so the root cause cannot be grounded → ROUTE TO HUMAN (not grounded).",
+    "report": "We're getting intermittent dropouts on the JTAG/debug-trace interface during long debug sessions — the trace connection just goes away for a moment and comes back. It's the debug/trace interface. Haven't been able to capture anything useful in the logs though."
+  },
+  {
+    "id": "EX-18",
+    "label": "Sensor fusion NaN / divergence (ASIL D)",
+    "expected_component_id": "CMP-019",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-019 (ASIL D) via KI-015. Feeds safety functions → safety override forces ROUTE TO HUMAN.",
+    "report": "The sensor fusion accelerator is producing NaNs — the Kalman filter update blows up under certain near-singular inputs, and on some adversarial edge cases the fused output diverges way past 5 sigma from reference. This feeds the safety functions, so it matters."
+  },
+  {
+    "id": "EX-19",
+    "label": "Cache coherency race (ASIL D)",
+    "expected_component_id": "CMP-016",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-016 (ASIL D) via KI-016. On the safety-critical core → safety override forces ROUTE TO HUMAN.",
+    "report": "We caught a cache coherency bug: after a cross-core invalidation race, a stale cache line got read, and the coherency protocol looked like it nearly deadlocked before a timeout recovered it on the safety-critical core. Rare but real."
+  },
+  {
+    "id": "EX-20",
+    "label": "Low-severity single-bit ECC on safety memory (ASIL C)",
+    "expected_component_id": "CMP-004",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-004 (ASIL C) via KI-017. Even though the issue is low severity and 'within spec' (errors corrected), the safety override still forces ROUTE TO HUMAN — proving the override keys on safety relevance, not severity.",
+    "report": "Nothing's actually failing, but the single-bit ECC correction rate on memory bank 3 has crept above our monitoring threshold — the errors are all being corrected fine, just more of them than usual. Probably minor, but flagging it. It's the ECC memory controller."
+  }
+]

@@ -1,0 +1,121 @@
+[
+  {
+    "id": "KI-001",
+    "pattern": "log buffer overflow / diagnostic entries dropped under burst load",
+    "root_cause": "Diagnostic logging ring buffer is undersized for burst logging; writer-thread backpressure causes entries to be dropped.",
+    "recommended_action": "Increase the ring buffer size and enable lossless overflow-to-disk for diagnostic logs.",
+    "related_component_id": "CMP-003"
+  },
+  {
+    "id": "KI-002",
+    "pattern": "PMU brownout / undervoltage on VDD_CORE during load transient",
+    "root_cause": "Power sequencing and load-transient margin are insufficient; VDD_CORE droops below the brownout threshold under a fast load step.",
+    "recommended_action": "Retune the PMU load-transient response and enforce VDD_IO-before-VDD_CORE power sequencing.",
+    "related_component_id": "CMP-002"
+  },
+  {
+    "id": "KI-003",
+    "pattern": "timing analysis tool used for safety-relevant signoff is not in the qualified toolchain manifest",
+    "root_cause": "ISO 26262 tool qualification (TCL) lapsed; safety-relevant clock signoff was performed with an unqualified STA tool version, so the signoff evidence is invalid.",
+    "recommended_action": "Re-run clock tree signoff with a qualified STA tool version and restore tool-qualification evidence before release.",
+    "related_component_id": "CMP-001"
+  },
+  {
+    "id": "KI-004",
+    "pattern": "power estimation model drift; predicted vs measured power diverges",
+    "root_cause": "The power estimation model calibration is stale; the characterization corner no longer matches current silicon.",
+    "recommended_action": "Recalibrate the power estimation model against current silicon characterization data.",
+    "related_component_id": "CMP-007"
+  },
+  {
+    "id": "KI-005",
+    "pattern": "memory controller uncorrectable multi-bit ECC error, persistent after scrubbing",
+    "root_cause": "A persistent hard multi-bit fault exists in a DRAM bank; ECC can detect but not correct multi-bit errors, and scrubbing cannot clear a hard fault.",
+    "recommended_action": "Retire the affected address range / bank, trigger the safety fault reaction, and schedule hardware inspection.",
+    "related_component_id": "CMP-004"
+  },
+  {
+    "id": "KI-006",
+    "pattern": "OTA firmware update fails and automatic rollback does not complete",
+    "root_cause": "The A/B slot swap flag is not cleared on a failed OTA update, so rollback stalls and the device can boot the staging image instead of the last-known-good slot.",
+    "recommended_action": "Fix the OTA slot-swap state machine to atomically clear the swap flag and force rollback to the last-known-good slot on failure.",
+    "related_component_id": "CMP-013"
+  },
+  {
+    "id": "KI-007",
+    "pattern": "spurious GPIO interrupts / interrupt storm on an input pin",
+    "root_cause": "The input pin lacks a debounce/glitch filter, so electrical noise produces spurious edges and an interrupt storm.",
+    "recommended_action": "Enable the GPIO debounce filter on the affected input pin and add a glitch-suppression threshold.",
+    "related_component_id": "CMP-017"
+  },
+  {
+    "id": "KI-008",
+    "pattern": "PLL loses lock or output jitter exceeds spec on a safety clock",
+    "root_cause": "PLL loop margin is insufficient under voltage droop; lock is lost and output jitter exceeds the spec limit for the safety clock domain.",
+    "recommended_action": "Increase PLL loop stability margin and validate lock behavior across voltage/temperature corners for the safety clock.",
+    "related_component_id": "CMP-010"
+  },
+  {
+    "id": "KI-009",
+    "pattern": "CAN controller enters bus-off after an elevated bit-error rate",
+    "root_cause": "An elevated bit-error rate on the CAN safety channel drives the transmit error counter past 255, forcing the controller into bus-off.",
+    "recommended_action": "Investigate the physical layer / termination on the CAN safety channel and confirm the bus-off recovery strategy meets the safety concept.",
+    "related_component_id": "CMP-011"
+  },
+  {
+    "id": "KI-010",
+    "pattern": "thermal sensor stuck / implausible flat reading, plausibility check fails",
+    "root_cause": "The thermal sensor channel is stuck (frozen reading); the plausibility cross-check against a neighbor sensor correctly flags it as implausible.",
+    "recommended_action": "Diagnose the stuck sensor channel (wiring/ADC) and confirm the safe-state reaction to loss of a thermal input.",
+    "related_component_id": "CMP-012"
+  },
+  {
+    "id": "KI-011",
+    "pattern": "TRNG online health test fails / entropy below threshold",
+    "root_cause": "The TRNG entropy source degraded and the online repetition-count health test tripped; conditioning is running on a reduced entropy pool.",
+    "recommended_action": "Service the entropy source, force a reseed, and hold random-consuming operations until the health test passes.",
+    "related_component_id": "CMP-018"
+  },
+  {
+    "id": "KI-012",
+    "pattern": "LBIST fault coverage below the ASIL diagnostic-coverage target",
+    "root_cause": "Scan/LBIST fault coverage for the safety island is below the ASIL-C target, leaving an undetected-fault gap that violates the diagnostic-coverage requirement.",
+    "recommended_action": "Add test points / patterns to raise LBIST coverage above the ASIL-C target and re-evaluate the diagnostic coverage metric (ISO 26262).",
+    "related_component_id": "CMP-014"
+  },
+  {
+    "id": "KI-013",
+    "pattern": "safety requirement has no linked verification in the traceability matrix",
+    "root_cause": "A safety requirement (watchdog fault-reaction timing) is missing its verification link, so there is an unverified safety requirement — a traceability gap that violates ISO 26262.",
+    "recommended_action": "Create and execute the missing verification, then link the result to the requirement to close the traceability gap before release.",
+    "related_component_id": "CMP-008"
+  },
+  {
+    "id": "KI-014",
+    "pattern": "requirements traceability tool drops trace links on export",
+    "root_cause": "The traceability export routine intermittently drops links, producing inconsistent matrices between output formats. Tooling bug, not a design defect.",
+    "recommended_action": "Fix the export serialization so link counts are consistent across formats and add a post-export link-count assertion.",
+    "related_component_id": "CMP-015"
+  },
+  {
+    "id": "KI-015",
+    "pattern": "sensor fusion produces NaN / diverges on edge input",
+    "root_cause": "The Kalman filter update is numerically unstable under near-singular covariance, producing NaN / large divergence on adversarial edge inputs.",
+    "recommended_action": "Use a Joseph-form covariance update with conditioning/clamping and add edge-input tests to the fusion validation suite.",
+    "related_component_id": "CMP-019"
+  },
+  {
+    "id": "KI-016",
+    "pattern": "cache coherency stale line / near-deadlock under invalidation race",
+    "root_cause": "A cross-core invalidation race lets a stale cache line be read and can drive the coherency protocol toward deadlock on the safety-critical core.",
+    "recommended_action": "Fix the invalidation ordering in the coherency protocol, add directed race tests, and confirm no impact to the safety-critical core.",
+    "related_component_id": "CMP-016"
+  },
+  {
+    "id": "KI-017",
+    "pattern": "elevated single-bit ECC correction rate on a memory bank",
+    "root_cause": "The single-bit ECC correction rate on a bank exceeds the monitoring threshold; errors are corrected but the rising rate indicates a degrading bank.",
+    "recommended_action": "Monitor the bank, schedule proactive scrubbing, and evaluate whether the trend warrants retiring the bank under the safety concept.",
+    "related_component_id": "CMP-004"
+  }
+]

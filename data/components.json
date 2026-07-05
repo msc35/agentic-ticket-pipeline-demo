@@ -1,0 +1,142 @@
+[
+  {
+    "id": "CMP-001",
+    "name": "Clock Tree Synthesis (CTS) Module",
+    "description": "Synthesizes and balances the on-chip clock distribution network, including skew signoff for safety-relevant clock domains.",
+    "safety_relevant": true,
+    "asil": "B"
+  },
+  {
+    "id": "CMP-002",
+    "name": "Power Management Unit (PMU)",
+    "description": "Controls voltage rails, power sequencing, and brownout protection for the SoC. On the functional-safety power path.",
+    "safety_relevant": true,
+    "asil": "D"
+  },
+  {
+    "id": "CMP-003",
+    "name": "Diagnostic Logging Utility",
+    "description": "General-purpose logging facility that records diagnostic events to a ring buffer. Not on any safety path.",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-004",
+    "name": "Memory Controller (ECC)",
+    "description": "DRAM memory controller with ECC. Detects and corrects single-bit errors and flags uncorrectable multi-bit faults into the safety mechanism.",
+    "safety_relevant": true,
+    "asil": "C"
+  },
+  {
+    "id": "CMP-005",
+    "name": "Static Timing Analysis (STA) Tool",
+    "description": "EDA tool used to perform timing signoff. Its output feeds safety-relevant signoff flows, so it is subject to ISO 26262 tool qualification (TCL).",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-006",
+    "name": "Verification Harness",
+    "description": "Regression and simulation harness used to run testbenches and gate-level simulations.",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-007",
+    "name": "Power Estimation Model",
+    "description": "Internal model used to predict dynamic and static power. Used for planning, not on any on-chip safety path.",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-008",
+    "name": "Safety Fault-Collection Unit (Watchdog)",
+    "description": "Collects fault signals from safety mechanisms and triggers the safe-state reaction. Core of the functional-safety concept.",
+    "safety_relevant": true,
+    "asil": "D"
+  },
+  {
+    "id": "CMP-009",
+    "name": "Build / Config Management",
+    "description": "Manages build configurations, revision hashes, and toolchain manifests across build nodes.",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-010",
+    "name": "PLL / Clock Generator (Analog)",
+    "description": "Analog phase-locked loop that generates functional clocks, including a safety-relevant ASIL-B clock domain.",
+    "safety_relevant": true,
+    "asil": "B"
+  },
+  {
+    "id": "CMP-011",
+    "name": "CAN Bus Interface Controller",
+    "description": "Handles the safety communication channel to other ECUs, including error handling and bus-off recovery.",
+    "safety_relevant": true,
+    "asil": "C"
+  },
+  {
+    "id": "CMP-012",
+    "name": "Thermal Monitor / Sensor",
+    "description": "On-die thermal sensing with plausibility cross-checks. Feeds the safety concept's over-temperature reaction.",
+    "safety_relevant": true,
+    "asil": "B"
+  },
+  {
+    "id": "CMP-013",
+    "name": "Firmware OTA Update Manager",
+    "description": "Manages over-the-air firmware updates using A/B slots and rollback. Not on the functional-safety path.",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-014",
+    "name": "LBIST / Scan Test Controller",
+    "description": "Logic built-in self-test and scan controller providing diagnostic coverage for the safety island.",
+    "safety_relevant": true,
+    "asil": "C"
+  },
+  {
+    "id": "CMP-015",
+    "name": "Requirements Traceability Tool",
+    "description": "Tool that maintains the requirements-to-verification traceability matrix. Support tooling, not on any safety path.",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-016",
+    "name": "Cache Coherency Unit",
+    "description": "Maintains coherency across cores, including the safety-critical core. On the functional-safety path.",
+    "safety_relevant": true,
+    "asil": "D"
+  },
+  {
+    "id": "CMP-017",
+    "name": "GPIO Controller",
+    "description": "General-purpose I/O controller for non-safety pins. Not on any safety path.",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-018",
+    "name": "True Random Number Generator (TRNG)",
+    "description": "Hardware entropy source for cryptographic key generation. Security-relevant but not on the functional-safety path.",
+    "safety_relevant": false,
+    "asil": "QM"
+  },
+  {
+    "id": "CMP-019",
+    "name": "Sensor Fusion Accelerator",
+    "description": "Hardware accelerator running Kalman-filter sensor fusion that feeds safety functions.",
+    "safety_relevant": true,
+    "asil": "D"
+  },
+  {
+    "id": "CMP-020",
+    "name": "JTAG / Debug-Trace Interface",
+    "description": "Debug and trace access port used during development. Not on any safety path.",
+    "safety_relevant": false,
+    "asil": "QM"
+  }
+]

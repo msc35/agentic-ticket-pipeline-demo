@@ -1,0 +1,296 @@
+[
+  {
+    "id": "LOG-001",
+    "timestamp": "2026-06-30T22:14:03Z",
+    "component_id": "CMP-003",
+    "severity": "warning",
+    "message": "Diagnostic log ring buffer reached 90% capacity during nightly burst."
+  },
+  {
+    "id": "LOG-002",
+    "timestamp": "2026-06-30T22:14:07Z",
+    "component_id": "CMP-003",
+    "severity": "error",
+    "message": "Log buffer overflow: 1,284 diagnostic entries dropped during burst logging."
+  },
+  {
+    "id": "LOG-003",
+    "timestamp": "2026-06-30T22:14:09Z",
+    "component_id": "CMP-003",
+    "severity": "warning",
+    "message": "Log rotation delayed; backpressure on diagnostic writer thread caused dropped entries."
+  },
+  {
+    "id": "LOG-004",
+    "timestamp": "2026-07-01T09:02:41Z",
+    "component_id": "CMP-002",
+    "severity": "error",
+    "message": "PMU voltage rail VDD_CORE dipped below brownout threshold (0.72V < 0.75V) during load transient."
+  },
+  {
+    "id": "LOG-005",
+    "timestamp": "2026-07-01T09:02:41Z",
+    "component_id": "CMP-002",
+    "severity": "warning",
+    "message": "PMU detected undervoltage event on rail VDD_CORE under fast load step."
+  },
+  {
+    "id": "LOG-006",
+    "timestamp": "2026-07-01T09:03:12Z",
+    "component_id": "CMP-002",
+    "severity": "error",
+    "message": "Power sequencing violation: VDD_CORE asserted before VDD_IO stable."
+  },
+  {
+    "id": "LOG-007",
+    "timestamp": "2026-07-02T03:11:55Z",
+    "component_id": "CMP-006",
+    "severity": "warning",
+    "message": "Intermittent testbench timeout on regression run 41827; did not reproduce on rerun."
+  },
+  {
+    "id": "LOG-008",
+    "timestamp": "2026-07-02T03:20:18Z",
+    "component_id": "CMP-009",
+    "severity": "warning",
+    "message": "Config hash mismatch between build node A and build node B; retried and passed."
+  },
+  {
+    "id": "LOG-009",
+    "timestamp": "2026-07-02T03:44:02Z",
+    "component_id": "CMP-005",
+    "severity": "info",
+    "message": "STA run completed with 3 waived exceptions carried over from the prior revision."
+  },
+  {
+    "id": "LOG-010",
+    "timestamp": "2026-07-02T04:01:37Z",
+    "component_id": "CMP-006",
+    "severity": "warning",
+    "message": "Sporadic X-propagation observed in gate-level simulation; cleared on rerun."
+  },
+  {
+    "id": "LOG-011",
+    "timestamp": "2026-07-02T14:22:09Z",
+    "component_id": "CMP-005",
+    "severity": "error",
+    "message": "STA tool qualification check failed: tool version 4.2.1 not in qualified toolchain manifest."
+  },
+  {
+    "id": "LOG-012",
+    "timestamp": "2026-07-02T14:25:44Z",
+    "component_id": "CMP-001",
+    "severity": "warning",
+    "message": "Clock tree signoff performed with unqualified STA tool build; tool-qualification (TCL) evidence missing."
+  },
+  {
+    "id": "LOG-013",
+    "timestamp": "2026-07-02T14:26:10Z",
+    "component_id": "CMP-001",
+    "severity": "error",
+    "message": "Clock skew signoff for ASIL-B clock domain relies on an unqualified timing analysis tool."
+  },
+  {
+    "id": "LOG-014",
+    "timestamp": "2026-07-03T11:48:20Z",
+    "component_id": "CMP-007",
+    "severity": "warning",
+    "message": "Power estimation model drift: predicted vs measured dynamic power diverged by 18%."
+  },
+  {
+    "id": "LOG-015",
+    "timestamp": "2026-07-03T11:48:25Z",
+    "component_id": "CMP-007",
+    "severity": "warning",
+    "message": "Power estimation model recalibration overdue; last calibration was 240 days ago."
+  },
+  {
+    "id": "LOG-016",
+    "timestamp": "2026-07-03T11:49:01Z",
+    "component_id": "CMP-007",
+    "severity": "info",
+    "message": "Power estimation report generated using a stale characterization corner."
+  },
+  {
+    "id": "LOG-017",
+    "timestamp": "2026-07-03T18:30:52Z",
+    "component_id": "CMP-004",
+    "severity": "error",
+    "message": "Memory controller reported uncorrectable multi-bit ECC error at address 0x3F2A11C0."
+  },
+  {
+    "id": "LOG-018",
+    "timestamp": "2026-07-03T18:31:04Z",
+    "component_id": "CMP-004",
+    "severity": "warning",
+    "message": "ECC single-bit error rate on bank 3 exceeded monitoring threshold (12 corrected within 1s)."
+  },
+  {
+    "id": "LOG-019",
+    "timestamp": "2026-07-03T18:33:29Z",
+    "component_id": "CMP-004",
+    "severity": "error",
+    "message": "Scrubbing cycle failed to clear persistent multi-bit fault in bank 3."
+  },
+  {
+    "id": "LOG-020",
+    "timestamp": "2026-07-01T00:05:00Z",
+    "component_id": "CMP-008",
+    "severity": "info",
+    "message": "Watchdog fault-collection unit self-test passed at boot."
+  },
+  {
+    "id": "LOG-021",
+    "timestamp": "2026-07-04T08:12:33Z",
+    "component_id": "CMP-013",
+    "severity": "error",
+    "message": "Firmware OTA update to slot B failed; automatic rollback to slot A did not complete, device left on staging image."
+  },
+  {
+    "id": "LOG-022",
+    "timestamp": "2026-07-04T08:12:40Z",
+    "component_id": "CMP-013",
+    "severity": "warning",
+    "message": "OTA update manager: A/B slot swap flag not cleared after failed update; next boot may load the staging image."
+  },
+  {
+    "id": "LOG-023",
+    "timestamp": "2026-07-04T10:41:02Z",
+    "component_id": "CMP-017",
+    "severity": "warning",
+    "message": "Spurious interrupt storm on GPIO pin 14; suspected missing input debounce filter."
+  },
+  {
+    "id": "LOG-024",
+    "timestamp": "2026-07-04T10:41:03Z",
+    "component_id": "CMP-017",
+    "severity": "info",
+    "message": "GPIO pin 14 toggled 4,201 times in 10ms with no corresponding external event."
+  },
+  {
+    "id": "LOG-025",
+    "timestamp": "2026-07-04T12:05:19Z",
+    "component_id": "CMP-010",
+    "severity": "error",
+    "message": "PLL lost lock on the ASIL-B functional clock domain during a voltage droop."
+  },
+  {
+    "id": "LOG-026",
+    "timestamp": "2026-07-04T12:05:22Z",
+    "component_id": "CMP-010",
+    "severity": "warning",
+    "message": "PLL output jitter of 142ps exceeds the 120ps spec limit for the safety clock."
+  },
+  {
+    "id": "LOG-027",
+    "timestamp": "2026-07-04T13:27:44Z",
+    "component_id": "CMP-011",
+    "severity": "error",
+    "message": "CAN controller entered bus-off state after the transmit error counter exceeded 255."
+  },
+  {
+    "id": "LOG-028",
+    "timestamp": "2026-07-04T13:27:41Z",
+    "component_id": "CMP-011",
+    "severity": "warning",
+    "message": "CAN bus bit-error rate elevated on the safety communication channel; 37 errors in 100ms."
+  },
+  {
+    "id": "LOG-029",
+    "timestamp": "2026-07-04T14:50:08Z",
+    "component_id": "CMP-012",
+    "severity": "error",
+    "message": "Thermal sensor reading stuck at 25.0C for 60s; plausibility cross-check against neighbor sensor failed."
+  },
+  {
+    "id": "LOG-030",
+    "timestamp": "2026-07-04T14:50:10Z",
+    "component_id": "CMP-012",
+    "severity": "warning",
+    "message": "Thermal monitor: implausible flat temperature during a known high-load workload."
+  },
+  {
+    "id": "LOG-031",
+    "timestamp": "2026-07-04T15:33:51Z",
+    "component_id": "CMP-018",
+    "severity": "warning",
+    "message": "TRNG online health test failed: repetition-count test tripped, entropy below threshold."
+  },
+  {
+    "id": "LOG-032",
+    "timestamp": "2026-07-04T15:33:52Z",
+    "component_id": "CMP-018",
+    "severity": "info",
+    "message": "TRNG reseed deferred; conditioning component operating on a reduced entropy pool."
+  },
+  {
+    "id": "LOG-033",
+    "timestamp": "2026-07-04T16:20:14Z",
+    "component_id": "CMP-014",
+    "severity": "error",
+    "message": "LBIST fault coverage measured at 89.2%, below the 90% target required for the ASIL-C block."
+  },
+  {
+    "id": "LOG-034",
+    "timestamp": "2026-07-04T16:20:20Z",
+    "component_id": "CMP-014",
+    "severity": "warning",
+    "message": "Scan test controller: coverage gap concentrated in the safety island logic."
+  },
+  {
+    "id": "LOG-035",
+    "timestamp": "2026-07-04T17:02:37Z",
+    "component_id": "CMP-008",
+    "severity": "error",
+    "message": "Safety requirement SR-207 (watchdog fault-reaction time) has no linked verification result in the traceability matrix."
+  },
+  {
+    "id": "LOG-036",
+    "timestamp": "2026-07-04T17:02:39Z",
+    "component_id": "CMP-008",
+    "severity": "warning",
+    "message": "Watchdog fault-collection unit: verification evidence for safe-state timing marked TODO."
+  },
+  {
+    "id": "LOG-037",
+    "timestamp": "2026-07-04T18:15:09Z",
+    "component_id": "CMP-015",
+    "severity": "warning",
+    "message": "Requirements traceability tool dropped 2 trace links during matrix export; re-export restored them."
+  },
+  {
+    "id": "LOG-038",
+    "timestamp": "2026-07-04T18:15:12Z",
+    "component_id": "CMP-015",
+    "severity": "info",
+    "message": "Trace tool export produced an inconsistent link count between the HTML and CSV outputs."
+  },
+  {
+    "id": "LOG-039",
+    "timestamp": "2026-07-04T19:41:55Z",
+    "component_id": "CMP-019",
+    "severity": "error",
+    "message": "Sensor fusion accelerator produced NaN in the Kalman filter update under near-singular covariance input."
+  },
+  {
+    "id": "LOG-040",
+    "timestamp": "2026-07-04T19:42:01Z",
+    "component_id": "CMP-019",
+    "severity": "warning",
+    "message": "Sensor fusion output diverged from reference by more than 5 sigma on an adversarial edge input."
+  },
+  {
+    "id": "LOG-041",
+    "timestamp": "2026-07-04T20:58:26Z",
+    "component_id": "CMP-016",
+    "severity": "error",
+    "message": "Cache coherency unit: stale cache line observed after a cross-core invalidation race."
+  },
+  {
+    "id": "LOG-042",
+    "timestamp": "2026-07-04T20:58:30Z",
+    "component_id": "CMP-016",
+    "severity": "warning",
+    "message": "Coherency protocol near-deadlock detected; recovered via timeout on the safety-critical core."
+  }
+]
