@@ -218,6 +218,19 @@ class Toolbox:
                     ids.add(record["id"])
         return ids
 
+    def surfaced_records(self) -> dict[str, dict[str, Any]]:
+        """Map each surfaced record id -> the record itself.
+
+        Part 5's grounding check uses this to resolve a cited id back to its record and
+        confirm the evidence actually links to the claimed component.
+        """
+        records: dict[str, dict[str, Any]] = {}
+        for call in self.evidence_trace:
+            for record in call["records"]:
+                if "id" in record:
+                    records[record["id"]] = record
+        return records
+
 
 if __name__ == "__main__":
     # Small self-demonstration: run one call of each tool and show what it surfaced.

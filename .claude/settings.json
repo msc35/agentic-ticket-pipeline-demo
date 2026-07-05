@@ -24,7 +24,8 @@
       "Bash(.venv/bin/python -)",
       "Bash(.venv/bin/python -m app.schema)",
       "Bash(.venv/bin/python -m app.tools)",
-      "Bash(.venv/bin/python -m app.agent)"
+      "Bash(.venv/bin/python -m app.agent)",
+      "Bash(.venv/bin/python -m app.validation)"
     ]
   }
 }

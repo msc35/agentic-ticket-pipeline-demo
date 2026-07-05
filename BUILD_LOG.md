@@ -187,3 +187,37 @@ ids are in the surfaced set, so it is genuinely grounded.
 
 **How to check it:** `python -m app.agent` runs the loop live on EX-1 and prints the tool
 calls, the parsed ticket, and the captured evidence trace. (Requires `GEMINI_API_KEY`.)
+
+## Part 5 — Validation, grounding check, and the decision gate (the star)
+
+**What I wrote:** `app/validation.py` — the deterministic reliability layer, in three steps:
+1. **Schema gate** — `validate_ticket(raw)` tries to build the `Ticket` model. Missing
+   fields, blank strings, unknown component id, bad severity, empty `evidence_ids`, or
+   non-JSON output all fail → route_to_human with a plain-English reason.
+2. **Grounding check** — `check_grounding(ticket, toolbox)` verifies the root cause against
+   the evidence trace: (a) no fabricated citations (every cited id was genuinely surfaced by
+   a tool this run), and (b) at least one cited **known issue** is for the blamed component.
+3. **Decision gate** — `evaluate(raw, toolbox)` combines them into a `PipelineResult`
+   (schema failed OR not grounded → route_to_human; else auto_draft, still subject to the
+   Part 6 safety override). Also added `Toolbox.surfaced_records()` so a cited id resolves
+   back to its record.
+
+**Why it matters:** This is the answer to "how do you use a fuzzy agent where output must be
+flawless." The agent proposes; deterministic code disposes. We never read the model's
+self-reported confidence (unreliable); we verify cited evidence against what the tools
+actually returned. Grounding is a fact we can check; confidence is a feeling we cannot.
+
+**The key design decision (worth defending):** logs are *symptoms*, known issues are
+*validated root causes*. A ticket is grounded only if it cites a known issue for the blamed
+component — symptomatic logs alone are not enough to auto-draft. This surfaced from a real
+failure: on EX-3 the agent confidently blamed a component from noisy logs and cited those
+real logs; a "cited evidence links to the component" rule would have wrongly auto-drafted
+it. Requiring a validated known issue is the conservative, safety-appropriate rule: we
+auto-resolve only root causes the knowledge base already recognises; novel or merely
+symptomatic reports go to a human, however confident the model sounds.
+
+**How to check it:** `python -m app.validation` runs (A) seven offline gate tests with no API
+— grounded ticket auto-drafts; fabricated evidence, a known issue for the wrong component,
+symptomatic-logs-only, cites-only-component, empty evidence, unknown component, and non-JSON
+all route with the right reason — then (B) live end-to-end: EX-1 (clean) auto_drafts
+(matches KI-001), EX-3 (ambiguous) routes as not grounded.
