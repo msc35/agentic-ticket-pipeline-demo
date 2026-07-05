@@ -23,7 +23,15 @@ cp .env.example .env   # then edit .env and paste your real GEMINI_API_KEY
 
 ## Run
 
-_(Run command will be filled in once the server exists — Part 7.)_
+```bash
+# from the project root, with the venv active and GEMINI_API_KEY in .env
+uvicorn app.server:app --port 8000
+```
+
+Then open http://localhost:8000 in a browser. Use `--reload` during development.
+
+Endpoints: `GET /examples` (curated inputs), `POST /run` (runs the pipeline, streams the
+reasoning trace as Server-Sent Events), `GET /` (the single-page UI).
 
 ## Project layout
 

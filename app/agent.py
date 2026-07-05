@@ -195,11 +195,13 @@ class AgentResult:
     steps: list[dict[str, Any]] = field(default_factory=list)  # ordered events for the UI
 
 
-def run_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS) -> AgentResult:
-    """Run the tool-calling loop on `report`, recording evidence into `toolbox`.
+def iter_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS):
+    """Generator form of the loop: yields each step (agent message / tool call) as it happens
+    and *returns* the final `AgentResult` (available via `StopIteration.value`).
 
-    Returns the agent's raw proposal (parsed JSON if possible) and an ordered step trace.
-    Does no validation — that is Part 5's job.
+    Streaming at step granularity gives the UI a live trace — tool calls appear one by one —
+    without needing token streaming through the tool loop. `run_agent` below drains this for
+    callers that just want the final result.
     """
     client = _client()
     config = types.GenerateContentConfig(
@@ -215,12 +217,17 @@ def run_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS) 
     ]
     steps: list[dict[str, Any]] = []
 
+    def emit(step: dict[str, Any]) -> dict[str, Any]:
+        """Record a step in the ordered trace and hand it back to be yielded."""
+        steps.append(step)
+        return step
+
     for round_i in range(max_rounds):
         resp = client.models.generate_content(model=MODEL, contents=contents, config=config)
 
         text = _text_of(resp)
         if text:
-            steps.append({"type": "agent_message", "text": text})
+            yield emit({"type": "agent_message", "text": text})
 
         calls = resp.function_calls or []
         if not calls:
@@ -235,7 +242,7 @@ def run_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS) 
         for call in calls:
             args = dict(call.args or {})
             records = _dispatch(toolbox, call.name, args)
-            steps.append({"type": "tool_call", "tool": call.name, "input": args, "records": records})
+            yield emit({"type": "tool_call", "tool": call.name, "input": args, "records": records})
             fr_parts.append(types.Part.from_function_response(
                 name=call.name, response={"result": records}
             ))
@@ -246,8 +253,21 @@ def run_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS) 
     resp = client.models.generate_content(model=MODEL, contents=contents, config=config)
     text = _text_of(resp)
     if text:
-        steps.append({"type": "agent_message", "text": text})
+        yield emit({"type": "agent_message", "text": text})
     return _finalize(text, steps, max_rounds)
+
+
+def run_agent(report: str, toolbox: Toolbox, max_rounds: int = MAX_TOOL_ROUNDS) -> AgentResult:
+    """Run the tool-calling loop to completion and return the agent's raw proposal.
+
+    Thin drainer over `iter_agent` for callers that don't need the live step stream.
+    """
+    gen = iter_agent(report, toolbox, max_rounds)
+    try:
+        while True:
+            next(gen)
+    except StopIteration as stop:
+        return stop.value
 
 
 def _finalize(text: str, steps: list[dict[str, Any]], rounds: int) -> AgentResult:

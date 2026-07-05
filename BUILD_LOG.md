@@ -254,3 +254,37 @@ ticket still routes, just for the quality reason.
 ticket auto-drafting on a QM component (CMP-003) but routing via the override on an ASIL-D
 component (CMP-002); section C (live) shows the clean trio: EX-1 auto_draft, EX-2 routed via
 SAFETY OVERRIDE (ASIL D) even though grounded, EX-3 routed for not-grounded (no override).
+
+## Part 7 — The pipeline orchestrator + FastAPI server
+
+**What I wrote:**
+- Refactored `app/agent.py`: the tool loop is now a generator `iter_agent(report, toolbox)`
+  that **yields each step (agent message / tool call) as it happens** and returns the final
+  `AgentResult`. `run_agent` is a thin drainer over it. This enables a live trace without
+  token-streaming through the tool loop.
+- `app/pipeline.py`: `run_pipeline(report)` (blocking → final `PipelineResult`) and
+  `iter_pipeline(report)` (generator that forwards agent steps then emits a final `result`
+  event). A fresh `Toolbox` per run keeps each request's evidence trace isolated; all state
+  is in-memory per request (no database).
+- `app/server.py`: FastAPI app with `GET /examples` (curated inputs for the UI buttons),
+  `POST /run` (streams the trace as Server-Sent Events; empty input and exceptions are
+  streamed as `error` events so the UI degrades gracefully), and `GET /` (serves
+  `frontend/index.html`). CORS open for local use.
+- A placeholder `frontend/index.html` (the real UI is Part 8).
+
+**What it does:** Turns the whole pipeline into one HTTP call the browser can run and watch.
+The SSE stream lets tool calls appear one by one, then a final result event carries the full
+`PipelineResult` (decision, reason, flags, ticket, evidence trace).
+
+**Why it matters:** Makes the reliability logic demonstrable live in a browser — the point
+of the build. Streaming at step granularity gives the "watch it investigate" effect while
+keeping the hand-rolled loop simple.
+
+**Run command:** `uvicorn app.server:app --port 8000` (venv active, `GEMINI_API_KEY` in
+`.env`), then open http://localhost:8000.
+
+**How to check it:** `python -m app.pipeline` runs both the blocking and streaming forms.
+With the server up: `GET /examples` returns 20 examples; `POST /run` with a report streams
+`tool_call` / `agent_message` events then a `result` event. Verified end-to-end on EX-2 —
+the SSE stream showed the tool calls, the agent's ticket, and a final result with
+`decision=route_to_human`, `safety_override=true`, `asil=D`.
