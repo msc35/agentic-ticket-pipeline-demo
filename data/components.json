@@ -138,5 +138,12 @@
     "description": "Debug and trace access port used during development. Not on any safety path.",
     "safety_relevant": false,
     "asil": "QM"
+  },
+  {
+    "id": "CMP-021",
+    "name": "Warning-Indicator (Telltale) Display Controller",
+    "description": "Drives the dashboard warning telltales (indicator lamps). Safety-relevant at ASIL A — a failed warning indicator is a low-but-nonzero integrity concern.",
+    "safety_relevant": true,
+    "asil": "A"
   }
 ]

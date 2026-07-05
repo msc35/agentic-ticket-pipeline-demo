@@ -402,3 +402,29 @@ deploying a persistent server or leaving the API key on a host.
 - Docker: `docker build -t agentic-ticket .` then
   `docker run --rm -p 8000:8000 -e GEMINI_API_KEY=... agentic-ticket` (Dockerfile provided;
   Docker isn't installed on this machine, so the image build is documented, not run here).
+
+## Part 10 — Extra polish
+
+**What I wrote:**
+- **Completed the ASIL spectrum.** Added component CMP-021 (Warning-Indicator / Telltale
+  Display Controller, **ASIL A**) with supporting logs (LOG-043/044), a known issue (KI-018),
+  and example **EX-21**. The data set now spans QM + ASIL A/B/C/D, and EX-21 shows that even
+  the *lowest* safety-integrity level routes via the override — the rule keys on safety
+  relevance, not on how high the ASIL is.
+- **`NOTES_FOR_INTERVIEW.md`** — a study guide: the 30-second pitch, a demo script
+  (EX-1 → EX-2 → EX-3), the four pillars as Q&A grounded in the code, an architecture
+  walkthrough, anticipated harder questions with honest answers, and a limitations /
+  "what I'd do next" section. Framed as notes for the presenter to make their own (the
+  personal framing is theirs, not invented here).
+- The **per-run decision-path summary** the spec suggested (schema → grounded → safety →
+  decision) was already added to the UI as the decision chain during the Part 8 enhancements.
+
+**What it does:** Rounds out the demo — a fuller ASIL range to point at, and a ready-to-study
+crib sheet for defending every design choice.
+
+**Why it matters:** The ASIL A case closes an obvious "does it handle *all* safety levels?"
+question, and the notes turn the build into something the presenter can defend fluently.
+
+**How to check it:** `pytest -q` is now 52 tests (the data-support tests auto-cover EX-21);
+`python scripts/acceptance.py` runs all 21 examples; EX-21 routes via SAFETY OVERRIDE (ASIL A),
+grounded, verified live.

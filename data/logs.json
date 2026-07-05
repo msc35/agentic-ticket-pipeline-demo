@@ -292,5 +292,19 @@
     "component_id": "CMP-016",
     "severity": "warning",
     "message": "Coherency protocol near-deadlock detected; recovered via a protocol reset on the safety-critical core."
+  },
+  {
+    "id": "LOG-043",
+    "timestamp": "2026-07-04T21:37:12Z",
+    "component_id": "CMP-021",
+    "severity": "error",
+    "message": "Warning-telltale controller: the brake-warning telltale failed to illuminate during the lamp self-check."
+  },
+  {
+    "id": "LOG-044",
+    "timestamp": "2026-07-04T21:37:15Z",
+    "component_id": "CMP-021",
+    "severity": "warning",
+    "message": "Telltale controller detected a stuck/open segment in the warning-indicator driver matrix."
   }
 ]

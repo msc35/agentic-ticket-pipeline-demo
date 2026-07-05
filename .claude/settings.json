@@ -49,7 +49,11 @@
       "Bash(chmod +x /Users/selim/Documents/agentic-ticket/scripts/share.sh)",
       "Bash(bash -n /Users/selim/Documents/agentic-ticket/scripts/share.sh)",
       "Bash(curl -s -o /dev/null -w \"local server \\(no password\\): / -> %{http_code}, /examples -> \" localhost:8000/)",
-      "Bash(.venv/bin/python -c \"import sys,json; print\\(str\\(len\\(json.load\\(sys.stdin\\)\\)\\)+' examples'\\)\")"
+      "Bash(.venv/bin/python -c \"import sys,json; print\\(str\\(len\\(json.load\\(sys.stdin\\)\\)\\)+' examples'\\)\")",
+      "Bash(.venv/bin/python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'server up · {len\\(d\\)} examples · last: {d[-1][\\\\\"id\\\\\"]} {d[-1][\\\\\"label\\\\\"]}'\\)\")",
+      "Bash(pkill -f \"cloudflared tunnel\")",
+      "Bash(APP_PASSWORD=\"infineon-demo\" ./scripts/share.sh)",
+      "Bash(curl -s -m 20 -o /dev/null -w '  GET /examples -> HTTP %{http_code}\\\\n' -u demo:infineon-demo https://effectiveness-represent-remedy-administered.trycloudflare.com/examples)"
     ]
   }
 }

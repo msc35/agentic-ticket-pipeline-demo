@@ -158,5 +158,13 @@
     "expected_decision": "route_to_human",
     "intended_path": "Grounds on CMP-004 (ASIL C) via KI-017. Even though the issue is low severity and 'within spec' (errors corrected), the safety override still forces ROUTE TO HUMAN — proving the override keys on safety relevance, not severity.",
     "report": "Nothing's actually failing, but the single-bit ECC correction rate on memory bank 3 has crept above our monitoring threshold — the errors are all being corrected fine, just more of them than usual. Probably minor, but flagging it. It's the ECC memory controller."
+  },
+  {
+    "id": "EX-21",
+    "label": "Warning telltale fails self-check (ASIL A)",
+    "expected_component_id": "CMP-021",
+    "expected_decision": "route_to_human",
+    "intended_path": "Grounds on CMP-021 (ASIL A) via KI-018. Even at the LOWEST safety integrity level, the override forces ROUTE TO HUMAN — completing the ASIL A-D range and proving the rule keys on safety relevance, not on how high the ASIL is.",
+    "report": "During the dashboard lamp self-check, the brake-warning telltale didn't light up. The telltale controller is flagging a stuck or open segment in the warning-indicator driver matrix. It's the warning-indicator display controller — low integrity, but still a safety indicator."
   }
 ]

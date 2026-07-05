@@ -117,5 +117,12 @@
     "root_cause": "The single-bit ECC correction rate on a bank exceeds the monitoring threshold; errors are corrected but the rising rate indicates a degrading bank.",
     "recommended_action": "Monitor the bank, schedule proactive scrubbing, and evaluate whether the trend warrants retiring the bank under the safety concept.",
     "related_component_id": "CMP-004"
+  },
+  {
+    "id": "KI-018",
+    "pattern": "warning telltale / indicator lamp fails to illuminate on the lamp self-check",
+    "root_cause": "A driver channel in the telltale controller has an open/stuck segment, so a warning indicator can fail to illuminate — a safety-relevant loss of driver-warning capability.",
+    "recommended_action": "Repair or reroute the affected telltale driver channel, re-run the lamp self-check, and confirm the safe-state indication path.",
+    "related_component_id": "CMP-021"
   }
 ]
