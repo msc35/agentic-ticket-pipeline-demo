@@ -221,3 +221,36 @@ symptomatic reports go to a human, however confident the model sounds.
 symptomatic-logs-only, cites-only-component, empty evidence, unknown component, and non-JSON
 all route with the right reason — then (B) live end-to-end: EX-1 (clean) auto_drafts
 (matches KI-001), EX-3 (ambiguous) routes as not grounded.
+
+## Part 6 — The ISO 26262 safety override
+
+**What I wrote:** `apply_safety_override(result)` in `app/validation.py`, plus a `decide()`
+helper that composes the full gate (`apply_safety_override(evaluate(...))`) as the single
+entry point for the pipeline. The override looks up `ticket.affected_component_id` (via the
+non-recording `get_component`, so it never pollutes the evidence trace); if that component
+is safety-relevant (ASIL A-D), it forces `decision=route_to_human`, sets
+`safety_override=True` and `affected_asil`, and writes a distinct safety reason.
+
+**What it does:** Adds the deterministic functional-safety rule that sits above the quality
+gates. A safety-relevant component is never auto-drafted — even a perfectly grounded,
+high-quality ticket is routed to a human. It keys on the component's ASIL, not on ticket
+quality or model confidence.
+
+**Why it matters:** This is the cleanest ISO 26262 story in the build. Under functional
+safety, output on a safety-critical path cannot be auto-trusted however good it looks; a
+deterministic rule enforces that on top of the probabilistic agent. It ties the whole build
+to the interviewer's homework.
+
+**One precedence decision worth defending:** the override only intercepts tickets that would
+OTHERWISE AUTO-DRAFT (schema-valid AND grounded). A ticket already routed for a schema or
+grounding reason keeps *that* reason. This surfaced from a live EX-3 run where the agent
+blamed a safety-relevant component from noisy logs: firing the override there would have
+masked the real story (not grounded) behind a safety banner, and made EX-3 non-deterministic
+across runs. Gating the override on the auto-draft path keeps safety routing and quality
+routing distinct (which the UI shows separately) and loses no safety — an ungrounded safety
+ticket still routes, just for the quality reason.
+
+**How to check it:** `python -m app.validation` — section B (offline) shows the same grounded
+ticket auto-drafting on a QM component (CMP-003) but routing via the override on an ASIL-D
+component (CMP-002); section C (live) shows the clean trio: EX-1 auto_draft, EX-2 routed via
+SAFETY OVERRIDE (ASIL D) even though grounded, EX-3 routed for not-grounded (no override).

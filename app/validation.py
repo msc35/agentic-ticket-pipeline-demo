@@ -7,9 +7,10 @@ The agent proposes; this module disposes. Three deterministic steps:
   2. Grounding check  — is the claimed root cause actually supported by evidence the tools
                         returned, rather than asserted by the model?
   3. Decision gate    — combine the two into auto_draft vs route_to_human.
+  4. Safety override  — (ISO 26262) force a route for any safety-relevant component, even
+                        when steps 1-3 all passed.
 
-The ISO 26262 safety override (Part 6) sits on top of this and can force a route even when
-everything here passes.
+`decide()` composes all four; it is the single entry point the pipeline uses.
 
 WHY WE CHECK GROUNDING INSTEAD OF ASKING THE MODEL HOW CONFIDENT IT IS
 ----------------------------------------------------------------------
@@ -37,7 +38,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from app.schema import PipelineResult, Ticket
-from app.tools import Toolbox
+from app.tools import Toolbox, get_component
 
 
 # --- step 1: schema validation ---------------------------------------------------------
@@ -167,11 +168,58 @@ def evaluate(raw_output: dict[str, Any] | None, toolbox: Toolbox) -> PipelineRes
     )
 
 
+# --- step 4: the ISO 26262 safety override ---------------------------------------------
+
+def apply_safety_override(result: PipelineResult) -> PipelineResult:
+    """Force route_to_human for any safety-relevant (ASIL A-D) component.
+
+    This is the deterministic functional-safety rule that sits ABOVE everything else. Under
+    ISO 26262, output on a safety-critical path cannot be auto-trusted no matter how good it
+    looks — so a safety-relevant component is *never* auto-drafted, even when the ticket is
+    perfectly grounded and high quality. The override keys on the component's safety
+    relevance, NOT on ticket quality or model confidence.
+
+    It only intercepts tickets that would OTHERWISE AUTO-DRAFT (schema-valid and grounded).
+    A ticket already routed for a schema or grounding reason stays routed for *that* reason —
+    this keeps safety routing and quality routing distinct, which the UI shows separately.
+    (No safety is lost: an ungrounded safety-relevant ticket still routes, just for the
+    quality reason.) Uses the non-recording `get_component` so this internal check never
+    pollutes the agent's evidence trace.
+    """
+    if result.decision != "auto_draft":
+        return result  # already routed for a schema/grounding reason — leave it, keep it distinct
+
+    component = get_component(result.ticket.affected_component_id)  # non-None on the auto_draft path
+    if component and component["safety_relevant"]:
+        asil = component["asil"]
+        return result.model_copy(update={
+            "decision": "route_to_human",
+            "safety_override": True,
+            "affected_asil": asil,
+            "reason": (
+                f"Safety override: {component['id']} ({component['name']}) is "
+                f"safety-relevant (ASIL {asil}), so it requires human review under ISO 26262 "
+                f"functional-safety policy — safety-relevant output is never auto-drafted, "
+                f"regardless of confidence or grounding."
+            ),
+        })
+    return result
+
+
+def decide(raw_output: dict[str, Any] | None, toolbox: Toolbox) -> PipelineResult:
+    """Full deterministic decision: schema + grounding gate, then the safety override.
+
+    This is the single entry point the pipeline (Part 7) uses.
+    """
+    return apply_safety_override(evaluate(raw_output, toolbox))
+
+
 # --- self-test -------------------------------------------------------------------------
 
 def _banner(result: PipelineResult) -> str:
+    override = f" | SAFETY OVERRIDE (ASIL {result.affected_asil})" if result.safety_override else ""
     return (f"decision={result.decision} | schema_valid={result.schema_valid} | "
-            f"grounded={result.grounded}\n    reason: {result.reason}")
+            f"grounded={result.grounded}{override}\n    reason: {result.reason}")
 
 
 if __name__ == "__main__":
@@ -206,18 +254,38 @@ if __name__ == "__main__":
         print(f"[{label}]")
         print("   ", _banner(evaluate(raw, tb)).replace("\n", "\n   "), "\n")
 
-    # Part B: LIVE end-to-end on the clean (EX-1) and ambiguous (EX-3) examples.
+    # Part B: OFFLINE safety-override tests — the same grounded ticket, one QM component and
+    # one ASIL-D component, showing the override flips only the safety-relevant one.
+    print("=== B. Offline safety-override tests (no API) ===\n")
+
+    # A grounded ASIL-D ticket (PMU / CMP-002): auto_draft BEFORE the override, routed after.
+    base_d = evaluate(good, tb)
+    print("[grounded ASIL-D ticket (CMP-002)]")
+    print("    before override:", _banner(base_d).replace("\n", "\n    "))
+    print("    after  override:", _banner(apply_safety_override(base_d)).replace("\n", "\n    "), "\n")
+
+    # A grounded QM ticket (logging / CMP-003): unaffected by the override.
+    qm_box = Toolbox()
+    qm_box.search_logs("log buffer overflow dropped entries", "CMP-003")
+    qm_box.query_known_issues("log buffer overflow dropped entries")
+    qm_ticket = dict(summary="Log buffer overflow", affected_component_id="CMP-003",
+                     root_cause="Ring buffer undersized.", severity="medium",
+                     recommended_action="Enlarge buffer.", evidence_ids=["LOG-002", "KI-001"])
+    print("[grounded QM ticket (CMP-003)]")
+    print("    after override:", _banner(decide(qm_ticket, qm_box)).replace("\n", "\n    "), "\n")
+
+    # Part C: LIVE end-to-end trio — auto-draft, safety override, ungrounded.
     import json
     from pathlib import Path
     from app.agent import run_agent
 
-    print("=== B. Live end-to-end (agent -> validation) ===\n")
+    print("=== C. Live end-to-end via decide() (agent -> full gate) ===\n")
     examples = {e["id"]: e for e in json.load(
         open(Path(__file__).resolve().parent.parent / "data" / "example_inputs.json"))}
-    for exid in ("EX-1", "EX-3"):
+    for exid in ("EX-1", "EX-2", "EX-3"):
         ex = examples[exid]
         box = Toolbox()
         agent_result = run_agent(ex["report"], box)
-        result = evaluate(agent_result.final_json, box)
+        result = decide(agent_result.final_json, box)
         print(f"{exid} — {ex['label']}")
         print("   ", _banner(result).replace("\n", "\n   "), "\n")
