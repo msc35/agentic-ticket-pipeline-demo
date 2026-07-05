@@ -40,6 +40,23 @@ _KNOWN_ISSUES: list[dict[str, Any]] = _load("known_issues.json")
 _COMPONENTS_BY_ID: dict[str, dict[str, Any]] = {c["id"]: c for c in _COMPONENTS}
 
 
+# --- non-recording accessors -----------------------------------------------------------
+# These read component data WITHOUT touching any evidence trace. The schema (Part 3) uses
+# them to validate component ids, and the safety override (Part 6) uses them to read a
+# component's ASIL. Those are internal checks, not agent investigation, so they must not
+# appear in the evidence trace — that is what the trace-recording Toolbox.lookup_component
+# is for.
+
+def all_component_ids() -> set[str]:
+    """The set of valid component ids — the universe the schema validates against."""
+    return set(_COMPONENTS_BY_ID)
+
+
+def get_component(component_id: str) -> dict[str, Any] | None:
+    """Return a component record (incl. safety_relevant / asil) without recording it."""
+    return _COMPONENTS_BY_ID.get(component_id)
+
+
 # --- simple, transparent matching ------------------------------------------------------
 
 # Stopwords: common English function/filler words that carry no technical meaning. They

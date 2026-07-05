@@ -114,3 +114,76 @@ surfaced ids). A verification script confirms, for all 20 examples: every ground
 example's expected component has both supporting logs and a matching known issue (using
 both the full report and short agent-style queries), and every ungrounded example
 surfaces no known issue — even when queried with its entire report text. All pass.
+
+## Part 3 — The Pydantic ticket schema (the deterministic contract)
+
+**What I wrote:** `app/schema.py` with three models:
+- `Ticket` — the strict output contract: `summary`, `affected_component_id`, `root_cause`,
+  `severity` (Literal low/medium/high/critical), `recommended_action`, and
+  `evidence_ids: list[str]`. Validators enforce: `affected_component_id` must be a real
+  component id (checked against `tools.all_component_ids()`), all text fields non-blank
+  (whitespace-stripped, `min_length=1`), and `evidence_ids` non-empty (blanks/dupes are
+  cleaned; a list of only blanks is rejected).
+- `EvidenceCall` — one `{tool, input, records}` entry, so the trace is typed.
+- `PipelineResult` — the full run result: `decision` (auto_draft/route_to_human),
+  plain-English `reason`, the three gate flags (`schema_valid`, `grounded`,
+  `safety_override`), `affected_asil` (for the safety badge), the validated `ticket` (or
+  `None`), `raw_ticket` (the agent's partial output for the human queue), and
+  `evidence_trace`.
+
+**What it does:** Defines the exact, typed shape the agent's output must take. Constructing
+a `Ticket` *is* the validation step — if the raw output can't build a valid `Ticket`,
+Pydantic raises and Part 5 converts that into a route-to-human decision.
+
+**Why it matters:** This is the core "how do you use a fuzzy agent where output must be
+flawless" answer: a probabilistic model, a deterministic gate. It fails **closed** — bad
+component id, blank field, wrong severity, or no evidence all block the ticket rather than
+letting it through. `evidence_ids` exists specifically so grounding is checkable: the agent
+must name the records it relied on, and Part 5 verifies them against the evidence trace.
+
+**One deliberate choice to defend:** extra fields are *ignored*, not rejected. If the model
+volunteers a `confidence` score, we drop it rather than fail on it — because we don't trust
+self-reported confidence anyway (that's the whole point of the grounding check). Rejecting
+extras would also route otherwise-good tickets for a cosmetic reason.
+
+**How to check it:** `python -m app.schema` runs a self-demo: a valid ticket builds (and
+shows evidence_ids de-duplicated/cleaned), and unknown component id / empty evidence_ids /
+bad severity / blank summary are each correctly rejected; a routed `PipelineResult` with no
+ticket builds fine.
+
+## Part 4 — The Gemini agent loop (the core agent)
+
+**What I wrote:** `app/agent.py` — a hand-rolled Gemini tool-calling loop using the current
+`google-genai` SDK (v2.10.0), no framework. Pieces:
+- The three tools declared as `types.FunctionDeclaration`s (JSON-schema params) wrapped in a
+  `types.Tool`. Automatic function calling is **disabled** so the loop is fully hand-driven.
+- A system prompt instructing the agent to investigate with tools first, ground its root
+  cause, cite ONLY ids the tools actually returned, and — if it cannot ground — say so and
+  return an empty `evidence_ids` rather than guess.
+- `run_agent(report, toolbox)`: sends the report, and each round executes any
+  `response.function_calls` against the `Toolbox` (which records the evidence trace), feeds
+  results back as a `role="user"` function-response turn, and repeats. Rounds are capped
+  (`MAX_TOOL_ROUNDS=6`) with a final "finalize now" nudge, so it always terminates.
+- The final text is parsed to JSON (`_extract_json`, tolerant of code fences / stray prose);
+  a parse failure is returned as `parse_ok=False`, NOT a crash — Part 5 treats that as a
+  schema failure. Returns an `AgentResult` (parsed json, raw text, rounds, ordered `steps`
+  for the UI).
+
+**What it does:** Turns a messy report into a raw ticket proposal by actually investigating
+the synthetic world. Model is `gemini-2.5-flash` (overridable via `GEMINI_MODEL`),
+`temperature=0` for reproducibility. The client reads `GEMINI_API_KEY` from `.env`/env and
+is created lazily so importing the module never requires a key.
+
+**Why it matters:** This is the "agentic pipeline" itself — a transparent, capped,
+hand-rolled loop with structured final output. Every step is inspectable, which is the point
+versus a no-code canvas. Crucially it does ONLY the fuzzy work (gather → reason → propose);
+all deterministic checks live in Part 5/6.
+
+**Live run (EX-1, clean case):** 2 rounds. Round 1: `search_logs` (found LOG-001/002/003
+plus two irrelevant matches it ignored), `lookup_component('CMP-003')`, `query_known_issues`
+→ KI-001. Round 2: emitted the ticket. Parsed OK; `affected_component_id=CMP-003`,
+`severity=medium`, `evidence_ids=[LOG-001, LOG-002, LOG-003, CMP-003, KI-001]` — all cited
+ids are in the surfaced set, so it is genuinely grounded.
+
+**How to check it:** `python -m app.agent` runs the loop live on EX-1 and prints the tool
+calls, the parsed ticket, and the captured evidence trace. (Requires `GEMINI_API_KEY`.)

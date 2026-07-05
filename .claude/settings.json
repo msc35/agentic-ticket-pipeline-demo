@@ -5,7 +5,26 @@
       "Bash(touch app/__init__.py app/schema.py app/tools.py app/agent.py app/validation.py app/pipeline.py app/server.py)",
       "Bash(python3 -c \"import app.schema, app.tools, app.agent, app.validation, app.pipeline, app.server; print\\('app package + all stub modules import cleanly'\\)\")",
       "Bash(python3 -m app.tools)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(python3 -c \"import pydantic; print\\('pydantic', pydantic.VERSION\\)\")",
+      "Bash(pip install *)",
+      "Bash(python3 -m app.schema)",
+      "Bash(python3 -c \"import sys; print\\(sys.prefix\\); print\\(sys.version\\)\")",
+      "Bash(python3 -c \"import dotenv\")",
+      "Bash(python3 -c \"import google.genai; print\\('google.genai OK'\\)\")",
+      "Bash(/Users/selim/anaconda3/bin/python --version)",
+      "Bash(/usr/bin/python3 --version)",
+      "Read(//usr/local/bin/**)",
+      "Bash(command -v python3.11 python3.12 python3.10)",
+      "Bash(/Users/selim/anaconda3/bin/python3.11 -m venv .venv)",
+      "Bash(.venv/bin/python --version)",
+      "Bash(.venv/bin/python -m pip install -q --upgrade pip)",
+      "Bash(.venv/bin/python -m pip install -q -r requirements.txt)",
+      "Bash(echo \"--- exit: $? ---\")",
+      "Bash(.venv/bin/python -)",
+      "Bash(.venv/bin/python -m app.schema)",
+      "Bash(.venv/bin/python -m app.tools)",
+      "Bash(.venv/bin/python -m app.agent)"
     ]
   }
 }
